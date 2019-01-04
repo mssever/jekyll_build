@@ -145,7 +145,7 @@ def parse_args():
                 -J.
                 '''.format(s),
                 indent=8))
-        return s
+        return os.path.abspath(s)
 
     dev = 'Do a development build. This is the default unless --deploy is given.'
     prod = 'Do a production build.'
@@ -183,11 +183,13 @@ def parse_args():
 def main():
     args = parse_args()
     print("Python sees this OS as: {}".format(os.name))
-    os.chdir(args.jekyll_dir)
     global build_dir
     global config
     config_file = '_build_config.json'
     build_dir = os.path.dirname(os.path.realpath(__file__))
+    print(f'Jekyll source directory: {args.jekyll_dir}')
+    print(f'Build scripts located in: {build_dir}')
+    os.chdir(args.jekyll_dir)
     if not os.path.isfile(config_file):
         exit(str_wrap(f'''
             Couldn't find the configuration file "{config_file}". Please create
