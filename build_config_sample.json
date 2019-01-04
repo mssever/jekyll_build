@@ -1,0 +1,8 @@
+{
+    "__comment": "This is an example config file for the build system. Copy it to your Jekyll site root and name it _build_config.json.",
+
+    "minify_options": "-ehtml,htm,js -F.min.js",
+    "git_remotes": [
+        "origin"
+    ]
+}

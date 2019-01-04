@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+'''
+Controls the build process for this site. Use this script for all builds.
+
+It also manages git pushes to both repositories.
+'''
+
+import argparse
+import json
+import os
+import re
+import shutil
+import sys
+import textwrap
+from subprocess import call, check_call, CalledProcessError
+
+if os.name == 'nt': # Make the print command automatically flush in Windows.
+                    # Otherwise, nothing will appear until exit.
+    import functools
+    print = functools.partial(print, flush=True)
+
+build_dir = ''
+config = None
+
+def str_wrap(string, kind='normal', indent=0, initial_offset=0):
+    cols, lines = shutil.get_terminal_size()
+    cols = min(cols, 100)
+    if kind == 'help':
+        # The width of argparse's left margin for help text, minus 1 for
+        # scrollbar padding on Windows' cmd.exe.
+        cols = max(cols-23-1, 10)
+    out = []
+    for paragraph in re.split(r'\r?\n\r?\n', textwrap.dedent(string)):
+        paragraph = re.sub(r'[\s]+', ' ', paragraph.strip())
+        lines = textwrap.wrap(paragraph, width=cols,
+                     replace_whitespace=True, break_long_words=False,
+                     initial_indent=' '*indent, subsequent_indent=' '*indent)
+        out.append('\n'.join(lines))
+    out = '\n\n'.join(out).rstrip()
+    if kind == 'help':
+        return out + '\n\n'
+    else:
+        return out + '\n'
+
+def clean():
+    print('Cleaning...')
+    cmd = [os.path.join(build_dir, 'clean.sh'), build_dir]
+    if os.name == 'nt':
+        cmd.insert(0, 'bash')
+    result = call(cmd)
+    return True if result == 0 else False
+
+def launch_apache():
+    if os.name != 'nt':
+        print("Unable to launch Apache on this system.")
+        return False
+    print('Launching server...')
+    result = call(['cmd', '/C', r'start C:\xampp\xampp-control.exe /run'])
+    return True if result == 0 else False
+
+def update_ctags():
+    result = call(['ctags', '-R', '--exclude=_site', '.'])
+    return True if result == 0 else False
+
+def build(dev, incremental=True, watch=False, serve=False):
+    mode = 'serve' if serve else 'build'
+    which = 'build_production.sh'
+    if dev:
+        which = 'build_dev.sh'
+    else:
+        success = clean()
+        if not success:
+            return False
+    update_ctags()
+    args = [os.path.join(build_dir, '{}'.format(which)), mode]
+    if os.name == 'nt':
+        args.insert(0, 'bash')
+    args.append(build_dir)
+    if incremental:
+        args.append('--incremental')
+    if watch and mode == 'build':
+        args.append('--watch')
+    print('Calling `{}`...'.format(' '.join(args)))
+    #exit()
+    try:
+        check_call(args)
+        if not dev or (not watch and not serve and not incremental):
+            return minify()
+    except CalledProcessError:
+        return False
+    except KeyboardInterrupt:
+        print('\nExiting `{}`.'.format(' '.join(args)))
+        return True if (watch or serve) else False
+    else:
+        return True
+
+def minify():
+    print('Minifying...')
+    cmd = [os.path.join(build_dir, 'minify.sh'), build_dir, config.get('minify_options', '')]
+    if os.name == 'nt':
+        cmd.insert(0, 'bash')
+    try:
+        check_call(cmd)
+    except CalledProcessError:
+        return False
+    else:
+        return True
+
+def deploy():
+    print('Running deploy script...')
+    cmd = [os.path.join(build_dir, 'deploy.sh'), build_dir]
+    if os.name == 'nt':
+        cmd.insert(0, 'bash')
+    try:
+        check_call(cmd)
+    except CalledProcessError:
+        return False
+    else:
+        return True
+
+def git_push(*upstreams):
+    print('Pushing to: {}'.format(' '.join(upstreams)))
+    try:
+        for upstream in upstreams:
+            check_call(['git', 'push', upstream])
+    except CalledProcessError:
+        return False
+    else:
+        return True
+
+def parse_args():
+    def jekyll_directory(s):
+        print(os.path.basename(sys.argv[0]))
+        if not os.path.isdir(s):
+            raise argparse.ArgumentTypeError('\n' + str_wrap('''
+                The directory "{}" doesn't exist.'''.format(s),
+                indent=8))
+        files = os.listdir(s)
+        if '_includes' not in files or '_config.yml' not in files:
+            raise argparse.ArgumentTypeError('\n' + str_wrap('''
+                The directory "{}" doesn't appear to be a Jekyll site source
+                directory. If you didn't pass the -J/--jekyll_dir argument, this
+                error is caused by your current working directory not being a
+                Jekyll site source directory. Either change directory or pass
+                -J.
+                '''.format(s),
+                indent=8))
+        return s
+
+    dev = 'Do a development build. This is the default unless --deploy is given.'
+    prod = 'Do a production build.'
+    deploy = 'Do a build, then deploy. Implies --production unless --dev is specified.'
+    clean = 'Clean the build dir.'
+    incr = 'Disable incremental builds. Only applies to development builds.'
+    watch = "Don't watch for changes. Only applies to development builds. Ignored when deploying or serving."
+    serve = 'After building, run Jekyll\'s built-in server. Ignored when deploying.'
+    push = 'Does a `git push` to each remote configured herein. All other options are ignored when this is in effect.'
+    xampp = 'Launch Apache, which must have been previously configured on the machine and live at C:\\xampp.'
+    ctags = 'Update the tags file.'
+    jdir = 'Use this directory as the Jekyll source directory. Default: the current working directory.'
+    epilog = 'When run with no arguments, this script runs a development build, passing Jekyll the --watch and --incremental arguments.'
+
+    parser = argparse.ArgumentParser(description=__doc__, epilog=epilog)
+    add = parser.add_argument
+    g = parser.add_argument_group(title='Mode', description='At most one of these arguments may be given:')
+    group = g.add_mutually_exclusive_group()
+    gadd = group.add_argument
+
+    gadd('-d', '--dev', dest='no_dev', action='store_false', help=dev)
+    gadd('-p', '--production', action='store_true', help=prod)
+    add('-D', '--deploy', action='store_true', help=deploy)
+    gadd('-c', '--clean', action='store_true', help=clean)
+    add('-i', '--no-incremental', dest='incremental', action='store_false', help=incr)
+    add('-w', '--no-watch', dest='watch', action='store_false', help=watch)
+    add('-s', '--serve', action='store_true', help=serve)
+    gadd('-S', '--apache', action='store_true', help=xampp)
+    gadd('-g', '--git-push', dest='push', action='store_true', help=push)
+    gadd('-t', '--ctags', action='store_true', help=ctags)
+    add('-J', '--jekyll-dir', type=jekyll_directory, default=os.getcwd(), help=jdir)
+
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+    print("Python sees this OS as: {}".format(os.name))
+    os.chdir(args.jekyll_dir)
+    global build_dir
+    global config
+    config_file = '_build_config.json'
+    build_dir = os.path.dirname(os.path.realpath(__file__))
+    if not os.path.isfile(config_file):
+        exit(str_wrap(f'''
+            Couldn't find the configuration file "{config_file}". Please create
+            it before continuing. You can find an example at
+            "{build_dir}{os.path.sep}build_config_sample.json".
+            '''))
+    with open(config_file) as f:
+        config = json.loads(f.read())
+    if args.push:
+        targets = config.get('git_remotes', ['origin'])
+        success = git_push(*targets)
+        code = 0 if success else 4
+        exit(code)
+    elif args.clean:
+        success = clean()
+        code = 0 if success else 3
+        exit(code)
+    elif args.apache:
+        success = launch_apache()
+        code = 0 if success else 5
+        exit(code)
+    elif args.ctags:
+        success = update_ctags()
+        code = 0 if success else 9
+        exit(code)
+    elif args.deploy:
+        d = {'dev': False}
+        args.serve = False
+        args.watch = False
+        if args.no_dev: # we want to deploy a production build
+            args.incremental = not args.incremental
+        else:
+            d['dev'] = True
+        d['incremental'] = args.incremental
+        success = build(**d)
+        if success:
+            success = deploy()
+            code = 0 if success else 2
+            exit(code)
+        else:
+            exit(1)
+    else:
+        d = {
+            'dev': False if args.production else True,
+            'incremental': args.incremental,
+            'watch': args.watch,
+            'serve': args.serve
+        }
+        success = build(**d)
+        code = 0 if success else 1
+        exit(code)
+
+if __name__ == '__main__':
+    main()

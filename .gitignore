@@ -1,0 +1,11 @@
+removed_files.txt
+__pycache__
+*~
+*.swp
+*.swo
+*#
+_site/*
+.sass-cache/*
+.jekyll-metadata
+Gemfile.lock
+tags
