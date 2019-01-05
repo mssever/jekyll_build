@@ -8,9 +8,10 @@ following features:
 * Deployment using Octopress
 * Minifies HTML and JavaScript in production, deployment, or when not watching
   or generating incremental builds. CSS minification can be handled by Jekyll
-  itself. Configure this through the configuration file.
-* Uses Jekyll's --incremental and --watch options by default, but these can be
-  turned off. Can optionally run the Jekyll server.
+  itself. Configure this through a Jekyll configuration file (such as
+  `_config.yml`).
+* Uses Jekyll's `--incremental` and `--watch` options by default, but these can
+  be turned off. Can optionally run the Jekyll server.
 * Automatically or manually generates ctags, ignoring the `_site` directory.
 * Handles Git pushing to multiple remotes.
 * On Windows, will launch XAMPP's Apache server
@@ -36,6 +37,9 @@ Dependencies
   ought to work.
 * A properly set up Jekyll site which can be called using `bundle exec jekyll`
 * Octopress (for deployments)
+* Assumes that the Jekyll project uses two configuration files: `_config.yml`
+  and `_config_production.yml`, with the former used for all the builds and
+  the latter only for production builds. These files are currently hardcoded.
 
 The following Gemfile is known to work:
 
