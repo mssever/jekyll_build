@@ -24,7 +24,7 @@ I run this build system on both Linux (primarily) and Windows (occasionally). It
 works in both places. In theory, it should run on any system which supports the
 dependencies. However, I haven't tested this theory. In particular, I don't know
 whether it will run on MacOS. (I'll accept a donated Mac in order to ensure
-compatibility. 😊
+compatibility. 😊)
 
 Dependencies
 ------------
