@@ -20,7 +20,11 @@ are primarily motivated by my own needs. Pull requests are welcome if you want
 to improve it. Otherwise, feel free to fork it if you need to modify it for your
 own purposes.
 
-and Python will run, but I haven't tested it on any other OS.
+I run this build system on both Linux (primarily) and Windows (occasionally). It
+works in both places. In theory, it should run on any system which supports the
+dependencies. However, I haven't tested this theory. In particular, I don't know
+whether it will run on MacOS. (I'll accept a donated Mac in order to ensure
+compatibility. 😊
 
 Dependencies
 ------------
