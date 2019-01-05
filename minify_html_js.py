@@ -10,7 +10,9 @@ from os.path import join
 import urllib.request, urllib.parse # for web-based JS minifier
 import sys
 
-if os.name == 'nt': # Make the print command automatically flush in Windows. Otherwise, nothing will appear until exit.
+if os.name == 'nt':
+    # Make the print command automatically flush in Windows. Otherwise, nothing
+    # will appear until exit.
     import functools
     print = functools.partial(print, flush=True)
 
@@ -49,9 +51,13 @@ def minify_js_file(name, dry_run=False):
             with urllib.request.urlopen(req) as response:
                 text = str(response.read(), 'utf-8')
         except urllib.error.HTTPError as e:
-            print('Error: Remote server at {} returned status code {}! Not minified.'.format(url, '{} {}'.format(e.code, e.read())), end=' ')
+            print(
+                f'Error: Remote server at {url} returned status code {e.code} {e.read()}! Not minified.',
+                end=' ')
         except urllib.error.URLError as e:
-            print('Error: Connection failed! (Reason: {}) Not minified.'.format(e.reason), end=' ')
+            print(
+                f'Error: Connection failed! (Reason: {e.reason}) Not minified.',
+                end=' ')
         else:
             if not text.startswith('// Error'):
                 if dry_run:
@@ -62,7 +68,9 @@ def minify_js_file(name, dry_run=False):
             else:
                 if os.name == 'posix':
                     sys.stdout.write("\033[1;31;7m")
-                print('Minification failed. Message:\n============\n{}\n============'.format(text), end='\t\t')
+                print(
+                    f'Minification failed. Message:\n========\n{text}\n========',
+                    end='\t\t')
                 if os.name == 'posix':
                     sys.stdout.write("\033[0m")
 
@@ -80,38 +88,52 @@ def parse_args():
 
     parser = argparse.ArgumentParser(description=__doc__)
     add = parser.add_argument
-    root = 'The root of the tree to minify. Every .html file under the tree will be minified. Must be a directory'
-    starts_with = 'A comma-separated list of strings to match filenames against. Any file whose basename starts with one of the strings will not be minified.'
-    includes = 'A comma-separated list of strings to match directory names against. Any directory whose name includes one of the strings anywhere will be skipped and none of its contents will be minified.'
-    file_includes = 'A comma-separated list of strings to search for in file basenames. Any file which matches one of the strings will not be minified.'
-    extensions = 'A comma-separated list of file extensions. Files with any of these extensions will be minified unless they are excluded by other options. If `js` is given, also minify JavaScript files having a .js extension. Default: html'
-    dry_run = "Go through the motions, but don't actually write any files."
+    root = '''The root of the tree to minify. Every .html file under the tree
+        will be minified. Must be a directory'''
+    starts_with = ''''A comma-separated list of strings to match filenames
+        against. Any file whose basename starts with one of the strings will not
+        be minified.'''
+    includes = '''A comma-separated list of strings to match directory names
+        against. Any directory whose name includes one of the strings anywhere
+        will be skipped and none of its contents will be minified.'''
+    file_includes = '''A comma-separated list of strings to search for in file
+        basenames. Any file which matches one of the strings will not be
+        minified.'''
+    extensions = '''A comma-separated list of file extensions. Files with any of
+        these extensions will be minified unless they are excluded by other
+        options. If `js` is given, also minify JavaScript files having a .js
+        extension. Default: html'''
+    dry_run = '''Go through the motions, but don't actually write any files.'''
     add('root', metavar='ROOT_DIRECTORY', type=directory, help=root)
-    add('-e', '--extensions', metavar='STRINGS', default=('.html',), type=comma_separated_extensions, help=extensions)
-    add('-f', '--filename-starts-with', metavar='STRINGS', default=tuple(), type=comma_separated_string, help=starts_with)
-    add('-F', '--filename-includes', metavar='STRINGS', default=tuple(), type=comma_separated_string, help=file_includes)
-    add('-d', '--dirname-includes', metavar='STRINGS', default=tuple(), type=comma_separated_string, help=includes)
+    add('-e', '--extensions', metavar='STRINGS', default=('.html',),
+            type=comma_separated_extensions, help=extensions)
+    add('-f', '--omit-filename-starts-with', metavar='STRINGS',
+            default=tuple(), type=comma_separated_string, help=starts_with)
+    add('-F', '--omit-filename-includes', metavar='STRINGS', default=tuple(),
+            type=comma_separated_string, help=file_includes)
+    add('-d', '--omit-dirname-includes', metavar='STRINGS', default=tuple(),
+            type=comma_separated_string, help=includes)
     add('-n', '--dry-run', action="store_true", help=dry_run)
     return parser.parse_args()
 
 def main():
     args = parse_args()
     for root, dirs, files in os.walk(args.root):
-        if any(dirname in root for dirname in args.dirname_includes):
+        if any(dirname in root for dirname in args.omit_dirname_includes):
             continue
         for file_ in files:
-            if file_.startswith(args.filename_starts_with):
+            if file_.startswith(args.omit_filename_starts_with):
                 continue
-            if any(name in file_ for name in args.filename_includes):
+            if any(name in file_ for name in args.omit_filename_includes):
                 continue
             if file_.endswith(args.extensions):
                 filename = join(root, file_)
                 if filename.endswith('.js'):
-                    print('Minifying JavaScript file {}...'.format(filename), end=' ')
+                    print(f'Minifying JavaScript file {filename}...', end=' ')
                     minify_js_file(filename, args.dry_run)
                     print('Done')
                 else:
-                    print('Minifying HTML file {}...'.format(filename), end=' ')
+                    print(f'Minifying HTML file {filename}...', end=' ')
                     minify_html_file(filename, args.dry_run)
                     print('Done')
 
