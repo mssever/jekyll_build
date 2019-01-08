@@ -21,6 +21,7 @@ if os.name == 'nt': # Make the print command automatically flush in Windows.
 
 build_dir = ''
 config = None
+verbosity = 0
 
 def str_wrap(string, kind='normal', indent=0, initial_offset=0):
     cols, lines = shutil.get_terminal_size()
@@ -43,7 +44,8 @@ def str_wrap(string, kind='normal', indent=0, initial_offset=0):
         return out + '\n'
 
 def clean():
-    print('Cleaning...')
+    if verbosity >= 0:
+        print('Cleaning...')
     cmd = [os.path.join(build_dir, 'clean.sh'), build_dir]
     if os.name == 'nt':
         cmd.insert(0, 'bash')
@@ -54,7 +56,8 @@ def launch_apache():
     if os.name != 'nt':
         print("Unable to launch Apache on this system.")
         return False
-    print('Launching server...')
+    if verbosity >= 0:
+        print('Launching server...')
     result = call(['cmd', '/C', r'start C:\xampp\xampp-control.exe /run'])
     return True if result == 0 else False
 
@@ -80,8 +83,8 @@ def build(dev, incremental=True, watch=False, serve=False):
         args.append('--incremental')
     if watch and mode == 'build':
         args.append('--watch')
-    print('Calling `{}`...'.format(' '.join(args)))
-    #exit()
+    if verbosity == 1:
+        print('Calling `{}`...'.format(' '.join(args)))
     try:
         check_call(args)
         if not dev or (not watch and not serve and not incremental):
@@ -89,13 +92,15 @@ def build(dev, incremental=True, watch=False, serve=False):
     except CalledProcessError:
         return False
     except KeyboardInterrupt:
-        print('\nExiting `{}`.'.format(' '.join(args)))
+        if verbosity >= 0:
+            print('\nExiting `{}`.'.format(' '.join(args)))
         return True if (watch or serve) else False
     else:
         return True
 
 def minify():
-    print('Minifying...')
+    if verbosity >= 0:
+        print('Minifying...')
     cmd = [os.path.join(build_dir, 'minify.sh'), build_dir, config.get('minify_options', '')]
     if os.name == 'nt':
         cmd.insert(0, 'bash')
@@ -107,7 +112,8 @@ def minify():
         return True
 
 def deploy():
-    print('Running deploy script...')
+    if verbosity >= 0:
+        print('Running deploy script...')
     cmd = [os.path.join(build_dir, 'deploy.sh'), build_dir]
     if os.name == 'nt':
         cmd.insert(0, 'bash')
@@ -119,10 +125,14 @@ def deploy():
         return True
 
 def git_push(*upstreams):
-    print('Pushing to: {}'.format(' '.join(upstreams)))
+    if verbosity >= 0:
+        print('Pushing to: {}'.format(' '.join(upstreams)))
+    switch = '--quiet' if verbosity == -1 else ''
+    if verbosity == 1:
+        switch = '--verbose'
     try:
         for upstream in upstreams:
-            check_call(['git', 'push', upstream])
+            check_call(['git', 'push', switch, upstream])
     except CalledProcessError:
         return False
     else:
@@ -130,7 +140,8 @@ def git_push(*upstreams):
 
 def parse_args():
     def jekyll_directory(s):
-        print(os.path.basename(sys.argv[0]))
+        if verbosity == 1:
+            print(os.path.basename(sys.argv[0]))
         if not os.path.isdir(s):
             raise argparse.ArgumentTypeError('\n' + str_wrap('''
                 The directory "{}" doesn't exist.'''.format(s),
@@ -159,36 +170,56 @@ def parse_args():
     ctags = 'Update the tags file.'
     jdir = 'Use this directory as the Jekyll source directory. Default: the current working directory.'
     epilog = 'When run with no arguments, this script runs a development build, passing Jekyll the --watch and --incremental arguments.'
+    verbose = 'Print all available debugging information'
+    silent = 'Print minimal information'
 
-    parser = argparse.ArgumentParser(description=__doc__, epilog=epilog)
+    parser = argparse.ArgumentParser(description=__doc__, epilog=epilog,
+            usage='%(prog)s [options]', add_help=False)
     add = parser.add_argument
     g = parser.add_argument_group(title='Mode', description='At most one of these arguments may be given:')
     group = g.add_mutually_exclusive_group()
     gadd = group.add_argument
+    o = parser.add_argument_group(title='Other arguments')
+    oadd = o.add_argument
+    v = parser.add_argument_group(title="Verbosity", description='At most one of these arguments may be given:')
+    vgroup = v.add_mutually_exclusive_group()
+    vadd = vgroup.add_argument
 
     gadd('-d', '--dev', dest='no_dev', action='store_false', help=dev)
     gadd('-p', '--production', action='store_true', help=prod)
-    add('-D', '--deploy', action='store_true', help=deploy)
     gadd('-c', '--clean', action='store_true', help=clean)
-    add('-i', '--no-incremental', dest='incremental', action='store_false', help=incr)
-    add('-w', '--no-watch', dest='watch', action='store_false', help=watch)
-    add('-s', '--serve', action='store_true', help=serve)
-    gadd('-S', '--apache', action='store_true', help=xampp)
     gadd('-g', '--git-push', dest='push', action='store_true', help=push)
+    gadd('-S', '--apache', action='store_true', help=xampp)
     gadd('-t', '--ctags', action='store_true', help=ctags)
-    add('-J', '--jekyll-dir', type=jekyll_directory, default=os.getcwd(), help=jdir)
+    oadd('-D', '--deploy', action='store_true', help=deploy)
+    oadd('-i', '--no-incremental', dest='incremental', action='store_false', help=incr)
+    oadd('-s', '--serve', action='store_true', help=serve)
+    oadd('-w', '--no-watch', dest='watch', action='store_false', help=watch)
+    oadd('-J', '--jekyll-dir', type=jekyll_directory, default=os.getcwd(), help=jdir)
+    oadd('-h', '--help', action='help', help="Show this help message and exit.")
+    vadd('-q', '--quiet', action='store_true', help=silent)
+    vadd('-v', '--verbose', action='store_true', help=verbose)
 
     return parser.parse_args()
 
 def main():
     args = parse_args()
-    print("Python sees this OS as: {}".format(os.name))
+    global verbosity
+    verbosity = 1 if args.verbose else 0
+    if args.quiet:
+        verbosity = -1
+    os.environ['JEKYLL_BUILD_VERBOSITY'] = str(verbosity)
+    if verbosity > 0:
+        print("os.environ: " + str(os.environ))
+    elif verbosity == 0:
+        print("Python sees this OS as: {}".format(os.name))
     global build_dir
     global config
     config_file = '_build_config.json'
     build_dir = os.path.dirname(os.path.realpath(__file__))
-    print(f'Jekyll source directory: {args.jekyll_dir}')
-    print(f'Build scripts located in: {build_dir}')
+    if verbosity >= 0:
+        print(f'Jekyll source directory: {args.jekyll_dir}')
+        print(f'Build scripts located in: {build_dir}')
     os.chdir(args.jekyll_dir)
     if not os.path.isfile(config_file):
         exit(str_wrap(f'''

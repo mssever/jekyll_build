@@ -28,6 +28,10 @@ See https://htmlmin.readthedocs.io/en/latest/index.html
 ''', file=sys.stderr)
     raise
 
+verbosity = 0
+if os.environ.get('JEKYLL_BUILD_VERBOSITY', False) != False:
+    verbosity = int(os.environ['JEKYLL_BUILD_VERBOSITY'])
+
 def minify_html_file(name, dry_run=False):
     minifier = htmlmin.Minifier(remove_comments=True, remove_empty_space=True, reduce_boolean_attributes=True)
     with open(name, 'r+', newline='\n', encoding='utf-8') as f: #encoding is needed on Windows
@@ -69,10 +73,12 @@ def minify_js_file(name, dry_run=False):
                 if os.name == 'posix':
                     sys.stdout.write("\033[1;31;7m")
                 print(
-                    f'Minification failed. Message:\n========\n{text}\n========',
+                    f'Minification failed. File: {name}\nMessage:\n========\n{text}\n========',
                     end='\t\t')
                 if os.name == 'posix':
                     sys.stdout.write("\033[0m")
+                if verbosity <= 0:
+                    print('\n')
 
 def parse_args():
     def directory(s):
@@ -129,13 +135,17 @@ def main():
             if file_.endswith(args.extensions):
                 filename = join(root, file_)
                 if filename.endswith('.js'):
-                    print(f'Minifying JavaScript file {filename}...', end=' ')
+                    if verbosity == 1:
+                        print(f'Minifying JavaScript file {filename}...', end=' ')
                     minify_js_file(filename, args.dry_run)
-                    print('Done')
+                    if verbosity == 1:
+                        print('Done')
                 else:
-                    print(f'Minifying HTML file {filename}...', end=' ')
+                    if verbosity == 1:
+                        print(f'Minifying HTML file {filename}...', end=' ')
                     minify_html_file(filename, args.dry_run)
-                    print('Done')
+                    if verbosity == 1:
+                        print('Done')
 
 if __name__ == '__main__':
     main()
