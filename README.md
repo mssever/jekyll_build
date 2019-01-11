@@ -53,7 +53,7 @@ The following Gemfile is known to work:
 Installation
 ------------
 
-1. Clone this respository anywhere you like. You can place it in a central
+1. Clone this repository anywhere you like. You can place it in a central
    location and refer to it from all your Jekyll projects, or you can add it to
    your project as a Git submodule.
 
@@ -61,7 +61,7 @@ Installation
    `_build_config.json`. Feel free to check this file into your project's source
    control.
 
-3. Edit `_build_config.json` to set the appropriate configuration options. for
+3. Edit `_build_config.json` to set the appropriate configuration options. For
    documentation on the "minify_options" key, run `minify_html_js.py --help`.
 
 4. **Optional:** Symlink `build` into your project's root directory. _Important:_
