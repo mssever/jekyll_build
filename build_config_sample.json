@@ -4,5 +4,6 @@
     "minify_options": "--extensions=html,htm,js --omit-filename-includes=.min.js",
     "git_remotes": [
         "origin"
-    ]
+    ],
+    "xampp_path": "C:\\xampp\\xampp-control.exe"
 }

@@ -56,9 +56,25 @@ def launch_apache():
     if os.name != 'nt':
         print("Unable to launch Apache on this system.")
         return False
+    elif 'xampp_path' not in config.keys():
+        with open(f'{build_dir}{os.path.sep}build_config_sample.json') as f:
+            config['xampp_path'] = json.loads(f.read())['xampp_path']
+        print('\n' + str_wrap(f'''
+            WARNING: Not configured. Please set the "xampp_path" option in the
+            config file ("_build_config.json"). Using the default path
+            ({config['xampp_path']}), which may or may not work.
+            '''))
+    elif ' ' in config['xampp_path']:
+        if verbosity >= 0:
+            print('\n' + str_wrap(f'''
+                WARNING: The configured server path ({config['xampp_path']})
+                contains one or more spaces. Though it is untested, it's likely
+                that this can't be made to work as the Windows command used to
+                launch the server doesn't like the server path to be
+                quoted.'''))
     if verbosity >= 0:
         print('Launching server...')
-    result = call(['cmd', '/C', r'start C:\xampp\xampp-control.exe /run'])
+    result = call(['cmd', '/C', f'start {config["xampp_path"]} /run'])
     return True if result == 0 else False
 
 def update_ctags():
