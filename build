@@ -156,7 +156,11 @@ def git_push(*upstreams):
         switch = '--verbose'
     try:
         for upstream in upstreams:
-            check_call(['git', 'push', switch, upstream])
+            call_lst = ['git', 'push']
+            if len(switch) > 0:
+                call_lst.append(switch)
+            call_lst.append(upstream)
+            check_call(call_lst)
     except CalledProcessError:
         return False
     else:
