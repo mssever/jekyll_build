@@ -23,6 +23,14 @@ build_dir = ''
 config = None
 verbosity = 0
 
+def is_build_dir(dirname):
+    try:
+        d = os.listdir(dirname)
+        return all(i in d for i in ['build_config_sample.json',
+            'minify_html_js.py', 'build_dev.sh', 'clean.sh', 'deploy.sh'])
+    except (FileNotFoundError, NotADirectoryError):
+        return False
+
 def str_wrap(string, kind='normal', indent=0, initial_offset=0):
     cols, lines = shutil.get_terminal_size()
     cols = min(cols, 100)
@@ -236,6 +244,19 @@ def main():
     if verbosity >= 0:
         print(f'Jekyll source directory: {args.jekyll_dir}')
         print(f'Build scripts located in: {build_dir}')
+    if not is_build_dir(build_dir):   # Sanity check
+        error_message = '\n' + str_wrap(
+                '''ERROR: The calculated build dir is "{}", but this isn't a
+                real build dir. This is a bug in the build script.''')
+        if os.path.islink(__file__):
+            build_dir = os.path.dirname(os.path.realpath(os.readlink(__file__)))
+            if not is_build_dir(build_dir):
+                exit(error_message.format(build_dir))
+            else:
+                if verbosity == 1:
+                    print('NOTICE: Corrected build dir.')
+        else:
+            exit(error_message.format(build_dir))
     os.chdir(args.jekyll_dir)
     if not os.path.isfile(config_file):
         exit(str_wrap(f'''
