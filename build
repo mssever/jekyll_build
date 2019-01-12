@@ -241,9 +241,6 @@ def main():
     global config
     config_file = '_build_config.json'
     build_dir = os.path.dirname(os.path.realpath(__file__))
-    if verbosity >= 0:
-        print(f'Jekyll source directory: {args.jekyll_dir}')
-        print(f'Build scripts located in: {build_dir}')
     if not is_build_dir(build_dir):   # Sanity check
         error_message = '\n' + str_wrap(
                 '''ERROR: The calculated build dir is "{}", but this isn't a
@@ -257,6 +254,9 @@ def main():
                     print('NOTICE: Corrected build dir.')
         else:
             exit(error_message.format(build_dir))
+    if verbosity >= 0:
+        print(f'Jekyll source directory: {args.jekyll_dir}')
+        print(f'Build scripts located in: {build_dir}')
     os.chdir(args.jekyll_dir)
     if not os.path.isfile(config_file):
         exit(str_wrap(f'''
