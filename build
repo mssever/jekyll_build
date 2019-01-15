@@ -65,7 +65,7 @@ def launch_apache():
         print("Unable to launch Apache on this system.")
         return False
     elif 'xampp_path' not in config.keys():
-        with open(f'{build_dir}{os.path.sep}build_config_sample.json') as f:
+        with open(os.path.join(build_dir, 'build_config_sample.json')) as f:
             config['xampp_path'] = json.loads(f.read())['xampp_path']
         print('\n' + str_wrap(f'''
             WARNING: Not configured. Please set the "xampp_path" option in the
@@ -266,7 +266,7 @@ def main():
         exit(str_wrap(f'''
             Couldn't find the configuration file "{config_file}". Please create
             it before continuing. You can find an example at
-            "{build_dir}{os.path.sep}build_config_sample.json".
+            "{os.path.join(build_dir, 'build_config_sample.json')}".
             '''))
     with open(config_file) as f:
         config = json.loads(f.read())
