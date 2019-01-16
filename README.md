@@ -64,7 +64,14 @@ Installation
 3. Edit `_build_config.json` to set the appropriate configuration options. For
    documentation on the "minify_options" key, run `minify_html_js.py --help`.
 
-4. **Optional:** Symlink `build` into your project's root directory. _Important:_
+4. Copy `deploy_config_sample.json` to your project's base directory. Either
+   call it `_deploy.json` or pass in the path to the configuration file every
+   time you deploy.
+
+5. Edit your deploy configuration file and configure it to deploy your site.
+   _Note:_ At present, the only deploy method supported is `rsync`.
+
+6. **Optional:** Symlink `build` into your project's root directory. _Important:_
    Symlink it; don't copy it. Otherwise, the build script won't be able to find
    its support files.
 

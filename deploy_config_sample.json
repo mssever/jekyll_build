@@ -1,0 +1,31 @@
+{
+  "method_help": "# How do you want to deploy? git, rsync or s3.",
+  "method": "rsync",
+
+  "user_help": "# The user for your host, e.g. user@host.com",
+  "user": null,
+
+  "remote_path_help": "# Destination directory",
+  "remote_path": null,
+
+  "delete_help": "# Remove files from destination which don't match files in source",
+  "delete": false,
+
+  "port_help": "# If your host requires a non standard port",
+  "port": null,
+
+  "flags_help": "# Modify flags as necessary to suit your hosting setup",
+  "flags":  "-avz",
+
+  "exclude_help": "# files to exclude",
+  "exclude": null,
+
+  "exclude-from_help": "# Path to file containing list of files to exclude",
+  "exclude-from": null,
+
+  "include_help": "# files to include",
+  "include": null,
+
+  "include-from_help": "# Path to file containing list of files to include",
+  "include-from": null
+}
