@@ -81,6 +81,8 @@ def make_rsync_cmd(container):
     if container.delete:
         cmd += ['--delete']
     local = container.site_dir
+    if not local.endswith(os.path.sep) and not local.endswith('/'):
+        local += os.path.sep
     remote = []
     if container.user:
         remote.append(container.user)
@@ -156,17 +158,17 @@ def main():
         print(c)
     cmd = make_rsync_cmd(c)
     if args.dry_run:
-        # print('Would run rsync. Run verbosely to see the arguments.')
-        cmd.insert(1, '--dry-run')
         print('Dry run selected.')
     if verbosity >= 0:
         if c.user:
             print(f'Deploying to {c.user}...')
         else:
             print('Deploying...')
-    if verbosity == 1:
+    if verbosity == 1 or args.dry_run:
         print('Executing the rsync command: ' + str(cmd))
     try:
+        if args.dry_run:
+            cmd.insert(1, '--dry-run')
         check_call(cmd)
     except CalledProcessError as e:
         print(f'Error running rsync: rsync exited with status {e.returncode}')

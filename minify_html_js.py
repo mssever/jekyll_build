@@ -38,7 +38,7 @@ def minify_html_file(name, dry_run=False):
         minifier.input(f.read())
         f.seek(0)
         if dry_run:
-            print('Would write file.', end=' ')
+            print(f'Would write file {name}.')
         else:
             f.truncate()
             f.write(minifier.finalize())
@@ -65,7 +65,7 @@ def minify_js_file(name, dry_run=False):
         else:
             if not text.startswith('// Error'):
                 if dry_run:
-                    print('Would write file.', end=' ')
+                    print(f'Would write file {name}.')
                 else:
                     f.truncate()
                     f.write(text)

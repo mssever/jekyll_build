@@ -141,7 +141,7 @@ def minify(dry_run=False):
         print('Minifying...')
     cmd = [os.path.join(build_dir, 'minify.sh'), build_dir, config.get('minify_options', '')]
     if dry_run:
-        cmd.append('--dry_run')
+        cmd.append('--dry-run')
     if os.name == 'nt':
         cmd.insert(0, 'bash')
     try:
@@ -151,11 +151,13 @@ def minify(dry_run=False):
     else:
         return True
 
-def deploy(args):
+def deploy(args, dry_run=False):
     if verbosity >= 0:
         print('Running deploy script...')
     cmd = [os.path.join(build_dir, 'deploy.sh'), build_dir, '_site']
     cmd += ['--config', args.deploy_config]
+    if dry_run:
+        cmd.append('--dry-run')
     if os.name == 'nt':
         cmd.insert(0, 'bash')
     try:
