@@ -92,8 +92,17 @@ def parse_args():
     def comma_separated_extensions(s):
         return tuple('.{}'.format(i) for i in comma_separated_string(s))
 
-    parser = argparse.ArgumentParser(description=__doc__)
-    add = parser.add_argument
+    parser = argparse.ArgumentParser(description=__doc__, add_help=False,
+            usage='%(prog)s ROOT <filetypes> [options]')
+    required = parser.add_argument_group(title='Required')
+    group = parser.add_argument_group(title='Filetypes to minify',
+            description="""Only the filetypes given by these arguments will be
+                minified. If you don't give any arguments in this section, this
+                script won't actually do anything.""")
+    options = parser.add_argument_group(title='Options')
+    radd = required.add_argument
+    gadd = group.add_argument
+    add = options.add_argument
     root = '''The root of the tree to minify. Every .html file under the tree
         will be minified. Must be a directory'''
     starts_with = ''''A comma-separated list of strings to match filenames
@@ -110,7 +119,13 @@ def parse_args():
         options. If `js` is given, also minify JavaScript files having a .js
         extension. Default: html'''
     dry_run = '''Go through the motions, but don't actually write any files.'''
-    add('root', metavar='ROOT_DIRECTORY', type=directory, help=root)
+    html = '''Minify HTML files. If not given, HTML files will be skipped
+        regardless of the other options.'''
+    js = '''Minify JavaScript files. If not given, JavaScript files will be
+        skipped regardless of the other options.'''
+    radd('root', metavar='ROOT_DIRECTORY', type=directory, help=root)
+    gadd('-H', '--html', action='store_true', help=html)
+    gadd('-J', '--js', action='store_true', help=js)
     add('-e', '--extensions', metavar='STRINGS', default=('.html',),
             type=comma_separated_extensions, help=extensions)
     add('-f', '--omit-filename-starts-with', metavar='STRINGS',
@@ -120,6 +135,7 @@ def parse_args():
     add('-d', '--omit-dirname-includes', metavar='STRINGS', default=tuple(),
             type=comma_separated_string, help=includes)
     add('-n', '--dry-run', action="store_true", help=dry_run)
+    add('-h', '--help', action='help', help="Show this help message and exit.")
     return parser.parse_args()
 
 def main():
@@ -135,17 +151,23 @@ def main():
             if file_.endswith(args.extensions):
                 filename = join(root, file_)
                 if filename.endswith('.js'):
-                    if verbosity == 1:
-                        print(f'Minifying JavaScript file {filename}...', end=' ')
-                    minify_js_file(filename, args.dry_run)
-                    if verbosity == 1:
-                        print('Done')
+                    if args.js:
+                        if verbosity == 1:
+                            print(f'Minifying JavaScript file {filename}...', end=' ')
+                        minify_js_file(filename, args.dry_run)
+                        if verbosity == 1:
+                            print('Done')
+                    elif verbosity == 1:
+                        print(f'JavaScript minification not selected so skipping {filename}...')
                 else:
-                    if verbosity == 1:
-                        print(f'Minifying HTML file {filename}...', end=' ')
-                    minify_html_file(filename, args.dry_run)
-                    if verbosity == 1:
-                        print('Done')
+                    if args.html:
+                        if verbosity == 1:
+                            print(f'Minifying HTML file {filename}...', end=' ')
+                        minify_html_file(filename, args.dry_run)
+                        if verbosity == 1:
+                            print('Done')
+                    elif verbosity == 1:
+                        print(f'HTML minification not selected so skipping {filename}...')
 
 if __name__ == '__main__':
     main()

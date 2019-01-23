@@ -12,7 +12,7 @@ import re
 import shutil
 import sys
 import textwrap
-from subprocess import call, check_call, CalledProcessError
+from subprocess import call, check_call, CalledProcessError, DEVNULL
 
 if os.name == 'nt': # Make the print command automatically flush in Windows.
                     # Otherwise, nothing will appear until exit.
@@ -97,10 +97,14 @@ def update_ctags(dry_run=False):
     if dry_run:
         print(f'Would call {cmd}')
         return True
-    result = call(cmd)
+    if verbosity < 0:
+        result = call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+    else:
+        result = call(cmd)
     return True if result == 0 else False
 
-def build(dev, incremental=True, watch=False, serve=False, dry_run=False):
+def build(dev, minify_html, minify_js, incremental=True, watch=False,
+        serve=False, dry_run=False):
     mode = 'serve' if serve else 'build'
     which = 'build_production.sh'
     if dev:
@@ -126,7 +130,7 @@ def build(dev, incremental=True, watch=False, serve=False, dry_run=False):
         else:
             check_call(args)
         if not dev or (not watch and not serve and not incremental):
-            return minify(dry_run)
+            return minify(js=minify_js, html=minify_html, dry_run=dry_run)
     except CalledProcessError:
         return False
     except KeyboardInterrupt:
@@ -136,10 +140,18 @@ def build(dev, incremental=True, watch=False, serve=False, dry_run=False):
     else:
         return True
 
-def minify(dry_run=False):
+def minify(js=True, html=True, dry_run=False):
+    if js is False and html is False:
+        if verbosity > 0:
+            print('Minification is disabled.')
+        return True
     if verbosity >= 0:
         print('Minifying...')
     cmd = [os.path.join(build_dir, 'minify.sh'), build_dir, config.get('minify_options', '')]
+    if js:
+        cmd.append('--js')
+    if html:
+        cmd.append('--html')
     if dry_run:
         cmd.append('--dry-run')
     if os.name == 'nt':
@@ -231,6 +243,9 @@ def parse_args():
     epilog = 'When run with no arguments, this script runs a development build, passing Jekyll the --watch and --incremental arguments.'
     verbose = 'Print all available debugging information'
     deploy_cfg = 'Path to the deploy configuration file. Default: _deploy.json'
+    no_minify = "Don't minify HTML or JavaScript. CSS minification is handled by Jekyll, not the build scripts. Equivalent to -HJ."
+    no_minify_html = "Don't minify HTML."
+    no_minify_js = "Don't minify JavaScript."
     dry_run = 'Do a dry run; don\'t actually change anything.'
     silent = 'Print minimal information'
 
@@ -256,7 +271,10 @@ def parse_args():
     oadd('-i', '--no-incremental', dest='incremental', action='store_false', help=incr)
     oadd('-s', '--serve', action='store_true', help=serve)
     oadd('-w', '--no-watch', dest='watch', action='store_false', help=watch)
-    oadd('-J', '--jekyll-dir', type=jekyll_directory, default=os.getcwd(), help=jdir)
+    oadd('-H', '--no-minify-html', dest='minify_html', action='store_false', help=no_minify_html)
+    oadd('-J', '--no-minify-js', dest='minify_js', action='store_false', help=no_minify_js)
+    oadd('-M', '--no-minify', dest='minify', action='store_false', help=no_minify)
+    oadd('-j', '--jekyll-dir', type=jekyll_directory, default=os.getcwd(), help=jdir)
     oadd('-z', '--deploy-config', type=json_file, default=None, help=deploy_cfg)
     oadd('-n', '--dry-run', action='store_true', help=dry_run)
     oadd('-h', '--help', action='help', help="Show this help message and exit.")
@@ -301,6 +319,10 @@ def main():
     if verbosity >= 0:
         print(f'Jekyll source directory: {args.jekyll_dir}')
         print(f'Build scripts located in: {build_dir}')
+    if not args.minify:
+        args.minify_js = args.minify_html = False
+    if verbosity == 1:
+        print(f'Build arguments: {args}')
     os.chdir(args.jekyll_dir)
     if not os.path.isfile(config_file):
         exit(str_wrap(f'''
@@ -336,7 +358,8 @@ def main():
         else:
             d['dev'] = True
         d['incremental'] = args.incremental
-        success = build(**d, dry_run=dry_run)
+        success = build(**d, minify_html=args.minify_html,
+                minify_js=args.minify_js, dry_run=dry_run)
         if success:
             success = deploy(args, dry_run)
             code = 0 if success else 2
@@ -350,7 +373,8 @@ def main():
             'watch': args.watch,
             'serve': args.serve
         }
-        success = build(**d, dry_run=dry_run)
+        success = build(**d, minify_html=args.minify_html,
+                minify_js=args.minify_js, dry_run=dry_run)
         code = 0 if success else 1
         exit(code)
 
