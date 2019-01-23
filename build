@@ -214,10 +214,10 @@ def parse_args():
         if '_includes' not in files or '_config.yml' not in files:
             raise argparse.ArgumentTypeError('\n' + str_wrap('''
                 The directory "{}" doesn't appear to be a Jekyll site source
-                directory. If you didn't pass the -J/--jekyll_dir argument, this
+                directory. If you didn't pass the -j/--jekyll_dir argument, this
                 error is caused by your current working directory not being a
                 Jekyll site source directory. Either change directory or pass
-                -J.
+                -j.
                 '''.format(s),
                 indent=8))
         return os.path.abspath(s)
