@@ -139,6 +139,9 @@ def build(dev, minify_html, minify_js, incremental=True, watch=False,
         return True if (watch or serve) else False
     else:
         return True
+    finally:
+        if verbosity > 0:
+            print('Build process ended.')
 
 def minify(js=True, html=True, dry_run=False):
     if js is False and html is False:

@@ -4,5 +4,9 @@
 set -e  # exit if any command returns nonzero
 mode=$1; shift
 build_dir="$1"; shift
-bundle exec jekyll "$mode" "$@"
+if [[ $JEKYLL_BUILD_VERBOSITY == -1 ]]; then
+    bundle exec jekyll "$mode" "$@" >/dev/null
+else
+    bundle exec jekyll "$mode" "$@"
+fi
 exit $?
