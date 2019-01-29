@@ -114,7 +114,7 @@ def build(dev, minify_html, minify_js, incremental=True, watch=False,
         if not success:
             return False
     update_ctags(dry_run)
-    args = [os.path.join(build_dir, '{}'.format(which)), mode]
+    args = [os.path.join(build_dir, which), mode]
     if os.name == 'nt':
         args.insert(0, 'bash')
     args.append(build_dir)
@@ -240,7 +240,7 @@ def parse_args():
     watch = "Don't watch for changes. Only applies to development builds. Ignored when deploying or serving."
     serve = 'After building, run Jekyll\'s built-in server. Ignored when deploying.'
     push = 'Does a `git push` to each remote configured herein. All other options are ignored when this is in effect.'
-    xampp = 'Launch Apache, which must have been previously configured on the machine and live at C:\\xampp.'
+    xampp = 'Windows only: Launch Apache, which must have been previously configured on the machine and live at the configured path.'
     ctags = 'Update the tags file.'
     jdir = 'Use this directory as the Jekyll source directory. Default: the current working directory.'
     epilog = 'When run with no arguments, this script runs a development build, passing Jekyll the --watch and --incremental arguments.'
@@ -298,7 +298,6 @@ def main():
     os.environ['JEKYLL_BUILD_VERBOSITY'] = str(verbosity)
     if verbosity > 0:
         print("os.environ: " + str(os.environ))
-    elif verbosity == 0:
         print("Python sees this OS as: {}".format(os.name))
     if dry_run and verbosity >= 0:
         print("Dry run enabled")
