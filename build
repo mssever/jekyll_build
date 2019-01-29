@@ -6,7 +6,7 @@ It also manages git pushes to both repositories.
 '''
 
 import argparse
-import json
+import jsonc as json
 import os
 import re
 import shutil
@@ -270,6 +270,7 @@ def parse_args():
     gadd('-g', '--git-push', dest='push', action='store_true', help=push)
     gadd('-S', '--apache', action='store_true', help=xampp)
     gadd('-t', '--ctags', action='store_true', help=ctags)
+
     oadd('-D', '--deploy', action='store_true', help=deploy)
     oadd('-i', '--no-incremental', dest='incremental', action='store_false', help=incr)
     oadd('-s', '--serve', action='store_true', help=serve)
@@ -281,6 +282,7 @@ def parse_args():
     oadd('-z', '--deploy-config', type=json_file, default=None, help=deploy_cfg)
     oadd('-n', '--dry-run', action='store_true', help=dry_run)
     oadd('-h', '--help', action='help', help="Show this help message and exit.")
+
     vadd('-q', '--quiet', action='store_true', help=silent)
     vadd('-v', '--verbose', action='store_true', help=verbose)
 

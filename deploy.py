@@ -8,7 +8,7 @@ normal, and 1 means verbose.
 '''
 
 import argparse
-import json
+import jsonc as json
 import os
 import shlex
 
@@ -29,36 +29,6 @@ class GenericContainer:
         return '\n'.join(f'{repr(k)}: {repr(v)}' for k, v in sorted(self.__dict__.items()))
 
 def make_rsync_cmd(container):
-    '''Algorithm:
-
-      def cmd
-        local = ''
-        remote = ''
-
-        cmd    =  "rsync "
-        cmd    << "#{@flags} "
-        cmd    << " --exclude-from #{@exclude_from}"  if @exclude_from
-        Array(@exclude).each do |e|
-          cmd  << " --exclude #{e}"
-        end
-        cmd    << " --include-from #{@include_from}"  if @include_from
-        Array(@include).each do |i|
-          cmd  << " --include #{i}"
-        end
-        cmd    << " --rsh='ssh -p#{@port}'"           if @user && @port
-        cmd    << " --delete "                        if @delete
-
-        local  << " #{File.join(@local, '')} "
-        remote << " #{@user}:"                         if @user
-        remote << "#{@remote_path}"
-
-        if @pull_dir
-          cmd << remote+'/ ' << @pull_dir
-        else
-          cmd << local << remote
-        end
-      end
-      '''
     cmd = ['rsync']
     if verbosity == 1:
         cmd += ['--verbose']
@@ -114,9 +84,11 @@ def parse_args():
 
     parser = argparse.ArgumentParser(description=__doc__)
     add = parser.add_argument
+
     add(dest='source', metavar='LOCAL_SITE_SOURCE', type=valid_directory)
     add('-c', '--config', default='_deploy.json', type=config_file)
     add('-n', '--dry-run', action='store_true')
+
     return parser.parse_args()
 
 def main():

@@ -123,9 +123,12 @@ def parse_args():
         regardless of the other options.'''
     js = '''Minify JavaScript files. If not given, JavaScript files will be
         skipped regardless of the other options.'''
+
     radd('root', metavar='ROOT_DIRECTORY', type=directory, help=root)
+
     gadd('-H', '--html', action='store_true', help=html)
     gadd('-J', '--js', action='store_true', help=js)
+
     add('-e', '--extensions', metavar='STRINGS', default=('.html',),
             type=comma_separated_extensions, help=extensions)
     add('-f', '--omit-filename-starts-with', metavar='STRINGS',
@@ -136,6 +139,7 @@ def parse_args():
             type=comma_separated_string, help=includes)
     add('-n', '--dry-run', action="store_true", help=dry_run)
     add('-h', '--help', action='help', help="Show this help message and exit.")
+
     return parser.parse_args()
 
 def main():
