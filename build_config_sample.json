@@ -1,9 +1,18 @@
+/* Build configuration file
+ *
+ * This is an example config file for the build system. Copy it to your Jekyll
+ * site root and name it _build_config.json.
+ */
 {
-    "__comment": "This is an example config file for the build system. Copy it to your Jekyll site root and name it _build_config.json.",
-
+    // Options to controll how HTML and JavaSctipt is minified.
+    // For an explanation of these options, run JEKYLL_BUILD_DIR/minify_html_js.py --help
     "minify_options": "--extensions=html,htm,js --omit-filename-includes=.min.js",
+
+    // List of remotes to push to when running build -g/--git-push
     "git_remotes": [
         "origin"
     ],
+
+    // Windows only: The path to Apache, when running build -S/--apache
     "xampp_path": "C:\\xampp\\xampp-control.exe"
 }

@@ -7,11 +7,12 @@ import json
 import re
 
 def loads(string):
-    if isinstance(string, str):
-        string = re.split(r'[\r\n]+', string)
-    elif not isinstance(string, list):
-        raise TypeError('string must be a string or a list')
-    return json.loads('\n'.join([i for i in string if not i.strip().startswith('//')]))
+    multiline_comments = re.compile(r'/\*'
+                                    r'.*?' # Non-greedy matching
+                                    r'\*/', re.DOTALL)
+    line_endings = re.compile(r'[\r\n]+')
+    string = multiline_comments.sub('', string)
+    return json.loads('\n'.join(i for i in line_endings.split(string) if not i.strip().startswith('//')))
 
 def load(filename):
     with open(filename) as f:
