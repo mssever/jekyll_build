@@ -6,13 +6,24 @@ It also manages git pushes to both repositories.
 '''
 
 import argparse
-import jsonc as json
 import os
 import re
 import shutil
 import sys
 import textwrap
 from subprocess import call, check_call, CalledProcessError, DEVNULL
+
+try:
+    import jsonc as json
+except ModuleNotFoundError:
+    # Windows can't find the jsonc module when this script is called from a symlink
+    if os.path.islink(__file__):
+        sys.path.insert(0,
+                        os.path.dirname(os.path.realpath(os.readlink(__file__)))
+                        )
+        import jsonc as json
+    else:
+        raise
 
 if os.name == 'nt': # Make the print command automatically flush in Windows.
                     # Otherwise, nothing will appear until exit.
