@@ -1,0 +1,5 @@
+--recurse
+--sort=foldcase
+--fields=+l
+--tag-relative=yes
+--totals=yes

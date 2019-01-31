@@ -129,10 +129,12 @@ def launch_apache(dry_run=False):
     return True if result == 0 else False
 
 def update_ctags(dry_run=False):
-    cmd = ['ctags', '-R', '--exclude=_site', '.']
+    cmd = ['ctags', '.']
     if dry_run:
         print(f'Would call {cmd}')
         return True
+    if verbosity > 0:
+        cmd.insert(1, '--verbose')
     if verbosity < 0:
         result = call(cmd, stdout=DEVNULL, stderr=DEVNULL)
     else:
