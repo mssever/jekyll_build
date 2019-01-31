@@ -12,7 +12,8 @@ def loads(string):
                                     r'\*/', re.DOTALL)
     line_endings = re.compile(r'[\r\n]+')
     string = multiline_comments.sub('', string)
-    return json.loads('\n'.join(i for i in line_endings.split(string) if not i.strip().startswith('//')))
+    return json.loads('\n'.join(
+        i for i in line_endings.split(string) if not i.strip().startswith('//')))
 
 def load(filename):
     with open(filename) as f:

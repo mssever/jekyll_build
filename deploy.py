@@ -26,7 +26,8 @@ if os.environ.get('JEKYLL_BUILD_VERBOSITY', False) != False:
 
 class GenericContainer:
     def __str__(self):
-        return '\n'.join(f'{repr(k)}: {repr(v)}' for k, v in sorted(self.__dict__.items()))
+        return '\n'.join(
+            f'{repr(k)}: {repr(v)}' for k, v in sorted(self.__dict__.items()))
 
 def make_rsync_cmd(container):
     cmd = ['rsync']
@@ -67,10 +68,8 @@ def parse_args():
             with open(s) as f:
                 return json.loads(f.read())
         except (FileNotFoundError, IsADirectoryError, json.JSONDecodeError):
-            raise argparse.ArgumentTypeError(f"The file {s} isn't a valid config file!")
-#         except Exception as e:
-#             print(e.type)
-#             raise
+            raise argparse.ArgumentTypeError(
+                                    f"The file {s} isn't a valid config file!")
 
     def valid_directory(s):
         s = os.path.abspath(s)
@@ -78,9 +77,12 @@ def parse_args():
             if len(os.listdir(s)) > 0:
                 return s
             else:
-                raise argparse.ArgumentTypeError("The source directory is empty! Either it isn't a valid source directory or you haven't built the site yet.")
+                raise argparse.ArgumentTypeError(
+                    "The source directory is empty! Either it isn't a valid "
+                    "source directory or you haven't built the site yet.")
         else:
-            raise argparse.ArgumentTypeError(f"The path {s} doesn't refer to a directory!")
+            raise argparse.ArgumentTypeError(
+                                f"The path {s} doesn't refer to a directory!")
 
     parser = argparse.ArgumentParser(description=__doc__)
     add = parser.add_argument
@@ -93,17 +95,14 @@ def parse_args():
 
 def main():
     args = parse_args()
-#     if verbosity == 1:
-#         print("===DEBUG=== deploy.py called with these arguments:")
-#         print(args)
-#     with open(args.config) as f:
-#         config = json.loads(f.read())
     if args.config.get('method', '') != 'rsync':
-        exit('Currently, the only deploy method supported is rsync. Please set the method appropriately in the deploy config file.')
+        exit('Currently, the only deploy method supported is rsync. Please set '
+             'the method appropriately in the deploy config file.')
     c = GenericContainer()
     c.site_dir = args.config.get('site_dir', None)
     if c.site_dir:
-        print('WARNING: The site_dir setting in the config file is IGNORED. Set it via the command line.')
+        print('WARNING: The site_dir setting in the config file is IGNORED. Set'
+              ' it via the command line.')
     c.site_dir = args.source
     c.user = args.config.get('user', None)
     c.remote_path = args.config.get('remote_path', None)
@@ -120,12 +119,6 @@ def main():
         c.include = [c.include]
     if isinstance(c.exclude, str):
         c.exclude = [c.exclude]
-#     if c.include_file:
-#         with open(c.include_file) as f:
-#             c.include += [i.strip() for i in f.readlines()]
-#     if c.exclude_file:
-#         with open(c.exclude_file) as f:
-#             c.include += [i.strip() for i in f.readlines()]
     if verbosity == 1:
         print(c)
     cmd = make_rsync_cmd(c)

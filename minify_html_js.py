@@ -33,7 +33,8 @@ if os.environ.get('JEKYLL_BUILD_VERBOSITY', False) != False:
     verbosity = int(os.environ['JEKYLL_BUILD_VERBOSITY'])
 
 def minify_html_file(name, dry_run=False):
-    minifier = htmlmin.Minifier(remove_comments=True, remove_empty_space=True, reduce_boolean_attributes=True)
+    minifier = htmlmin.Minifier(remove_comments=True, remove_empty_space=True,
+                                reduce_boolean_attributes=True)
     with open(name, 'r+', newline='\n', encoding='utf-8') as f: #encoding is needed on Windows
         minifier.input(f.read())
         f.seek(0)
@@ -55,13 +56,11 @@ def minify_js_file(name, dry_run=False):
             with urllib.request.urlopen(req) as response:
                 text = str(response.read(), 'utf-8')
         except urllib.error.HTTPError as e:
-            print(
-                f'Error: Remote server at {url} returned status code {e.code} {e.read()}! Not minified.',
-                end=' ')
+            print(f'Error: Remote server at {url} returned status code '
+                  f'{e.code} {e.read()}! Not minified.', end=' ')
         except urllib.error.URLError as e:
-            print(
-                f'Error: Connection failed! (Reason: {e.reason}) Not minified.',
-                end=' ')
+            print(f'Error: Connection failed! (Reason: {e.reason}) Not '
+                  'minified.', end=' ')
         else:
             if not text.startswith('// Error'):
                 if dry_run:
@@ -72,9 +71,9 @@ def minify_js_file(name, dry_run=False):
             else:
                 if os.name == 'posix':
                     sys.stdout.write("\033[1;31;7m")
-                print(
-                    f'Minification failed. File: {name}\nMessage:\n========\n{text}\n========',
-                    end='\t\t')
+                print('Minification failed. File: '
+                      f'{name}\nMessage:\n========\n{text}\n========',
+                      end='\t\t')
                 if os.name == 'posix':
                     sys.stdout.write("\033[0m")
                 if verbosity <= 0:
@@ -157,12 +156,14 @@ def main():
                 if filename.endswith('.js'):
                     if args.js:
                         if verbosity == 1:
-                            print(f'Minifying JavaScript file {filename}...', end=' ')
+                            print(f'Minifying JavaScript file {filename}...',
+                                  end=' ')
                         minify_js_file(filename, args.dry_run)
                         if verbosity == 1:
                             print('Done')
                     elif verbosity == 1:
-                        print(f'JavaScript minification not selected so skipping {filename}...')
+                        print('JavaScript minification not selected so '
+                              f'skipping {filename}...')
                 else:
                     if args.html:
                         if verbosity == 1:
@@ -171,7 +172,8 @@ def main():
                         if verbosity == 1:
                             print('Done')
                     elif verbosity == 1:
-                        print(f'HTML minification not selected so skipping {filename}...')
+                        print('HTML minification not selected so skipping '
+                              f'{filename}...')
 
 if __name__ == '__main__':
     main()

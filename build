@@ -13,23 +13,26 @@ import sys
 import textwrap
 from subprocess import call, check_call, CalledProcessError, DEVNULL
 
+path = os.path
+
 try:
     import jsonc as json
 except ModuleNotFoundError:
-    # Windows can't find the jsonc module when this script is called from a symlink
-    if os.path.islink(__file__):
-        sys.path.insert(0,
-                        os.path.dirname(os.path.realpath(os.readlink(__file__)))
-                        )
+    # Windows can't find the jsonc module when this script is called from a
+    # symlink.
+    if path.islink(__file__):
+        sys.path.insert(0, path.dirname(path.realpath(os.readlink(__file__))))
         import jsonc as json
     else:
         raise
 
-if os.name == 'nt': # Make the print command automatically flush in Windows.
-                    # Otherwise, nothing will appear until exit.
+# Make the print command automatically flush in Windows. Otherwise, nothing
+# will appear until exit.
+if os.name == 'nt':
     import functools
     print = functools.partial(print, flush=True)
 
+# Initialize some global variables.
 build_dir = ''
 config = None
 verbosity = 0
@@ -41,6 +44,28 @@ def is_build_dir(dirname):
             'minify_html_js.py', 'build_dev.sh', 'clean.sh', 'deploy.sh'])
     except (FileNotFoundError, NotADirectoryError):
         return False
+
+def find_build_dir():
+    bdir = path.dirname(path.realpath(__file__))
+
+    # Sanity check needed to convince Windows about the true location of this
+    # file. In Windows, path.realpath doesn't resolve symlinks, leaving us
+    # unable to find our support files. So, we do the work for Windows, if
+    # necessary.
+    if not is_build_dir(bdir):
+        error_message = '\n' + str_wrap(
+                '''ERROR: The calculated build dir is "{}", but this isn't a
+                real build dir. This is a bug in the build script.''')
+        if path.islink(__file__):
+            bdir = path.dirname(path.realpath(os.readlink(__file__)))
+            if not is_bdir(bdir):
+                exit(error_message.format(bdir))
+            else:
+                if verbosity == 1:
+                    print('NOTICE: Corrected build dir.')
+        else:
+            exit(error_message.format(bdir))
+    return bdir
 
 def str_wrap(string, kind='normal', indent=0, initial_offset=0):
     cols, lines = shutil.get_terminal_size()
@@ -65,7 +90,7 @@ def str_wrap(string, kind='normal', indent=0, initial_offset=0):
 def clean(dry_run=False):
     if verbosity >= 0:
         print('Cleaning...')
-    cmd = [os.path.join(build_dir, 'clean.sh'), build_dir]
+    cmd = [path.join(build_dir, 'clean.sh'), build_dir]
     if os.name == 'nt':
         cmd.insert(0, 'bash')
     if dry_run:
@@ -79,7 +104,7 @@ def launch_apache(dry_run=False):
         print("Unable to launch Apache on this system.")
         return False
     elif 'xampp_path' not in config.keys():
-        with open(os.path.join(build_dir, 'build_config_sample.json')) as f:
+        with open(path.join(build_dir, 'build_config_sample.json')) as f:
             config['xampp_path'] = json.loads(f.read())['xampp_path']
         print('\n' + str_wrap(f'''
             WARNING: Not configured. Please set the "xampp_path" option in the
@@ -115,7 +140,7 @@ def update_ctags(dry_run=False):
     return True if result == 0 else False
 
 def build(dev, minify_html, minify_js, incremental=True, watch=False,
-        serve=False, dry_run=False):
+          serve=False, dry_run=False):
     mode = 'serve' if serve else 'build'
     which = 'build_production.sh'
     if dev:
@@ -125,7 +150,7 @@ def build(dev, minify_html, minify_js, incremental=True, watch=False,
         if not success:
             return False
     update_ctags(dry_run)
-    args = [os.path.join(build_dir, which), mode]
+    args = [path.join(build_dir, which), mode]
     if os.name == 'nt':
         args.insert(0, 'bash')
     args.append(build_dir)
@@ -161,7 +186,7 @@ def minify(js=True, html=True, dry_run=False):
         return True
     if verbosity >= 0:
         print('Minifying...')
-    cmd = [os.path.join(build_dir, 'minify.sh'), build_dir, config.get('minify_options', '')]
+    cmd = [path.join(build_dir, 'minify.sh'), build_dir, config.get('minify_options', '')]
     if js:
         cmd.append('--js')
     if html:
@@ -180,7 +205,7 @@ def minify(js=True, html=True, dry_run=False):
 def deploy(args, dry_run=False):
     if verbosity >= 0:
         print('Running deploy script...')
-    cmd = [os.path.join(build_dir, 'deploy.sh'), build_dir, '_site']
+    cmd = [path.join(build_dir, 'deploy.sh'), build_dir, '_site']
     cmd += ['--config', args.deploy_config]
     if dry_run:
         cmd.append('--dry-run')
@@ -199,25 +224,24 @@ def git_push(*upstreams, dry_run=False):
     switch = '--quiet' if verbosity == -1 else ''
     if verbosity == 1:
         switch = '--verbose'
-    try:
-        for upstream in upstreams:
-            call_lst = ['git', 'push']
-            if len(switch) > 0:
-                call_lst.append(switch)
-            if dry_run:
-                call_lst.append('--dry-run')
-            call_lst.append(upstream)
+    for upstream in upstreams:
+        call_lst = ['git', 'push']
+        if len(switch) > 0:
+            call_lst.append(switch)
+        if dry_run:
+            call_lst.append('--dry-run')
+        call_lst.append(upstream)
+        try:
             check_call(call_lst)
-    except CalledProcessError:
-        return False
-    else:
-        return True
+        except CalledProcessError:
+            return False
+    return True
 
 def parse_args():
     def jekyll_directory(s):
         if verbosity == 1:
-            print(os.path.basename(sys.argv[0]))
-        if not os.path.isdir(s):
+            print(path.basename(sys.argv[0]))
+        if not path.isdir(s):
             raise argparse.ArgumentTypeError('\n' + str_wrap('''
                 The directory "{}" doesn't exist.'''.format(s),
                 indent=8))
@@ -231,7 +255,7 @@ def parse_args():
                 -j.
                 '''.format(s),
                 indent=8))
-        return os.path.abspath(s)
+        return path.abspath(s)
 
     def json_file(s):
         if s is None:
@@ -241,37 +265,49 @@ def parse_args():
                 json.loads(f.read())
             return s
         except (FileNotFoundError, IsADirectoryError, json.JSONDecodeError):
-            raise argparse.ArgumentTypeError(f"The file {s} isn't a valid JSON config file!")
+            raise argparse.ArgumentTypeError(
+                f"The file {s} isn't a valid JSON config file!")
 
-    dev = 'Do a development build. This is the default unless --deploy is given.'
+    dev = '''Do a development build. This is the default unless --deploy is
+            given.'''
     prod = 'Do a production build.'
-    deploy = 'Do a build, then deploy. Implies --production unless --dev is specified.'
+    deploy = '''Do a build, then deploy. Implies --production unless --dev is
+            specified.'''
     clean = 'Clean the build dir.'
     incr = 'Disable incremental builds. Only applies to development builds.'
-    watch = "Don't watch for changes. Only applies to development builds. Ignored when deploying or serving."
-    serve = 'After building, run Jekyll\'s built-in server. Ignored when deploying.'
-    push = 'Does a `git push` to each remote configured herein. All other options are ignored when this is in effect.'
-    xampp = 'Windows only: Launch Apache, which must have been previously configured on the machine and live at the configured path.'
+    watch = """Don't watch for changes. Only applies to development builds.
+            Ignored when deploying or serving."""
+    serve = '''After building, run Jekyll's built-in server. Ignored when
+            deploying.'''
+    push = '''Does a `git push` to each remote configured herein. All other
+            options are ignored when this is in effect.'''
+    xampp = '''Windows only: Launch Apache, which must have been previously
+            configured on the machine and live at the configured path.'''
     ctags = 'Update the tags file.'
-    jdir = 'Use this directory as the Jekyll source directory. Default: the current working directory.'
-    epilog = 'When run with no arguments, this script runs a development build, passing Jekyll the --watch and --incremental arguments.'
+    jdir = '''Use this directory as the Jekyll source directory. Default: the
+            current working directory.'''
+    epilog = '''When run with no arguments, this script runs a development
+            build, passing Jekyll the --watch and --incremental arguments.'''
     verbose = 'Print all available debugging information'
     deploy_cfg = 'Path to the deploy configuration file. Default: _deploy.json'
-    no_minify = "Don't minify HTML or JavaScript. CSS minification is handled by Jekyll, not the build scripts. Equivalent to -HJ."
+    no_minify = """Don't minify HTML or JavaScript. CSS minification is handled
+            by Jekyll, not the build scripts. Equivalent to -HJ."""
     no_minify_html = "Don't minify HTML."
     no_minify_js = "Don't minify JavaScript."
-    dry_run = 'Do a dry run; don\'t actually change anything.'
+    dry_run = "Do a dry run; don't actually change anything."
     silent = 'Print minimal information'
 
     parser = argparse.ArgumentParser(description=__doc__, epilog=epilog,
             usage='%(prog)s [options]', add_help=False)
     add = parser.add_argument
-    g = parser.add_argument_group(title='Mode', description='At most one of these arguments may be given:')
+    g = parser.add_argument_group(title='Mode',
+                    description='At most one of these arguments may be given:')
     group = g.add_mutually_exclusive_group()
     gadd = group.add_argument
     o = parser.add_argument_group(title='Other arguments')
     oadd = o.add_argument
-    v = parser.add_argument_group(title="Verbosity", description='At most one of these arguments may be given:')
+    v = parser.add_argument_group(title="Verbosity",
+                    description='At most one of these arguments may be given:')
     vgroup = v.add_mutually_exclusive_group()
     vadd = vgroup.add_argument
 
@@ -283,13 +319,18 @@ def parse_args():
     gadd('-t', '--ctags', action='store_true', help=ctags)
 
     oadd('-D', '--deploy', action='store_true', help=deploy)
-    oadd('-i', '--no-incremental', dest='incremental', action='store_false', help=incr)
+    oadd('-i', '--no-incremental', dest='incremental', action='store_false',
+         help=incr)
     oadd('-s', '--serve', action='store_true', help=serve)
     oadd('-w', '--no-watch', dest='watch', action='store_false', help=watch)
-    oadd('-H', '--no-minify-html', dest='minify_html', action='store_false', help=no_minify_html)
-    oadd('-J', '--no-minify-js', dest='minify_js', action='store_false', help=no_minify_js)
-    oadd('-M', '--no-minify', dest='minify', action='store_false', help=no_minify)
-    oadd('-j', '--jekyll-dir', type=jekyll_directory, default=os.getcwd(), help=jdir)
+    oadd('-H', '--no-minify-html', dest='minify_html', action='store_false',
+         help=no_minify_html)
+    oadd('-J', '--no-minify-js', dest='minify_js', action='store_false',
+         help=no_minify_js)
+    oadd('-M', '--no-minify', dest='minify', action='store_false',
+         help=no_minify)
+    oadd('-j', '--jekyll-dir', type=jekyll_directory, default=os.getcwd(),
+         help=jdir)
     oadd('-z', '--deploy-config', type=json_file, default=None, help=deploy_cfg)
     oadd('-n', '--dry-run', action='store_true', help=dry_run)
     oadd('-h', '--help', action='help', help="Show this help message and exit.")
@@ -317,20 +358,7 @@ def main():
     config_file = '_build_config.json'
     if not args.deploy_config:
         args.deploy_config = '_deploy.json'
-    build_dir = os.path.dirname(os.path.realpath(__file__))
-    if not is_build_dir(build_dir):   # Sanity check
-        error_message = '\n' + str_wrap(
-                '''ERROR: The calculated build dir is "{}", but this isn't a
-                real build dir. This is a bug in the build script.''')
-        if os.path.islink(__file__):
-            build_dir = os.path.dirname(os.path.realpath(os.readlink(__file__)))
-            if not is_build_dir(build_dir):
-                exit(error_message.format(build_dir))
-            else:
-                if verbosity == 1:
-                    print('NOTICE: Corrected build dir.')
-        else:
-            exit(error_message.format(build_dir))
+    build_dir = find_build_dir()
     if verbosity >= 0:
         print(f'Jekyll source directory: {args.jekyll_dir}')
         print(f'Build scripts located in: {build_dir}')
@@ -339,11 +367,11 @@ def main():
     if verbosity == 1:
         print(f'Build arguments: {args}')
     os.chdir(args.jekyll_dir)
-    if not os.path.isfile(config_file):
+    if not path.isfile(config_file):
         exit(str_wrap(f'''
             Couldn't find the configuration file "{config_file}". Please create
             it before continuing. You can find an example at
-            "{os.path.join(build_dir, 'build_config_sample.json')}".
+            "{path.join(build_dir, 'build_config_sample.json')}".
             '''))
     with open(config_file) as f:
         config = json.loads(f.read())

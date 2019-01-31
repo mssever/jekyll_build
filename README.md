@@ -5,7 +5,7 @@ This is Scott Severance's build system for Jekyll websites. It supports the
 following features:
 
 * Development and production targets
-* Deployment using Octopress
+* Deployment using `rsync` over `ssh`
 * Minifies HTML and JavaScript in production, deployment, or when not watching
   or generating incremental builds. CSS minification can be handled by Jekyll
   itself. Configure this through a Jekyll configuration file (such as
@@ -36,7 +36,6 @@ Dependencies
   ways of installing/using Bash will work. On other OSes, the default Bash
   ought to work.
 * A properly set up Jekyll site which can be called using `bundle exec jekyll`
-* Octopress (for deployments)
 * Assumes that the Jekyll project uses two configuration files: `_config.yml`
   and `_config_production.yml`, with the former used for all the builds and
   the latter only for production builds. These files are currently hardcoded.
