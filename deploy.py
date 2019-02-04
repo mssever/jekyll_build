@@ -52,6 +52,13 @@ def make_rsync_cmd(container):
     if container.delete:
         cmd += ['--delete']
     local = container.site_dir
+    if os.name == 'nt' and local[1] == ':':
+        message = str("Windows rsync can't handle pathnames which include a "
+                      "drive letter. Thus, the computed path for the site "
+                      f"directory, {local}, will make rsync error out. To fix "
+                      "this, make sure that your current working directory is "
+                      f"in the same drive as {local}.")
+        raise RuntimeError(message)
     if not local.endswith(os.path.sep) and not local.endswith('/'):
         local += os.path.sep
     remote = []
@@ -75,7 +82,7 @@ def parse_args():
         s = os.path.abspath(s)
         if os.path.isdir(s):
             if len(os.listdir(s)) > 0:
-                return s
+                return os.path.relpath(s)
             else:
                 raise argparse.ArgumentTypeError(
                     "The source directory is empty! Either it isn't a valid "

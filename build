@@ -58,7 +58,7 @@ def find_build_dir():
                 real build dir. This is a bug in the build script.''')
         if path.islink(__file__):
             bdir = path.dirname(path.realpath(os.readlink(__file__)))
-            if not is_bdir(bdir):
+            if not is_build_dir(bdir):
                 exit(error_message.format(bdir))
             else:
                 if verbosity == 1:

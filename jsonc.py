@@ -19,5 +19,7 @@ def load(filename):
     with open(filename) as f:
         return loads(f.readlines())
 
+JSONDecodeError = json.JSONDecodeError
+
 if __name__ == '__main__':
     exit('This is a library module not meant to be executed directly.')
