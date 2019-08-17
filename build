@@ -142,7 +142,7 @@ def update_ctags(dry_run=False):
     return True if result == 0 else False
 
 def build(dev, minify_html, minify_js, incremental=True, watch=False,
-          serve=False, dry_run=False):
+          serve=False, trace=False, dry_run=False):
     mode = 'serve' if serve else 'build'
     which = 'build_production.sh'
     if dev:
@@ -160,6 +160,8 @@ def build(dev, minify_html, minify_js, incremental=True, watch=False,
         args.append('--incremental')
     if watch and mode == 'build':
         args.append('--watch')
+    if trace:
+        args.append('--trace')
     if verbosity == 1:
         print('Calling `{}`...'.format(' '.join(args)))
     try:
@@ -298,10 +300,11 @@ def parse_args():
     no_minify_js = "Don't minify JavaScript."
     dry_run = "Do a dry run; don't actually change anything."
     silent = 'Print minimal information'
+    trace = 'Pass the --trace argument to jekyll build'
 
     parser = argparse.ArgumentParser(description=__doc__, epilog=epilog,
             usage='%(prog)s [options]', add_help=False)
-    add = parser.add_argument
+    #add = parser.add_argument
     g = parser.add_argument_group(title='Mode',
                     description='At most one of these arguments may be given:')
     group = g.add_mutually_exclusive_group()
@@ -334,6 +337,7 @@ def parse_args():
     oadd('-j', '--jekyll-dir', type=jekyll_directory, default=os.getcwd(),
          help=jdir)
     oadd('-z', '--deploy-config', type=json_file, default=None, help=deploy_cfg)
+    oadd('--trace', action='store_true', help=trace)
     oadd('-n', '--dry-run', action='store_true', help=dry_run)
     oadd('-h', '--help', action='help', help="Show this help message and exit.")
 
@@ -395,7 +399,7 @@ def main():
         code = 0 if success else 9
         exit(code)
     elif args.deploy:
-        d = {'dev': False}
+        d = {'dev': False, 'trace': args.trace}
         args.serve = False
         args.watch = False
         if args.no_dev: # we want to deploy a production build
