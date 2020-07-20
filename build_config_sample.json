@@ -17,5 +17,9 @@
     ],
 
     // Windows only: The path to Apache, when running build -S/--apache
-    "xampp_path": "C:\\xampp\\xampp-control.exe"
+    "xampp_path": "C:\\xampp\\xampp-control.exe",
+
+    //Pre-commands (build and deploy): Commands to run before the build is started
+    "build_pre_command": "some command here",
+    "deploy_pre_command": "some command here"
 }

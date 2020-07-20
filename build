@@ -8,6 +8,7 @@ It also manages git pushes to both repositories.
 import argparse
 import os
 import re
+import shlex
 import shutil
 import sys
 import textwrap
@@ -86,6 +87,17 @@ def str_wrap(string, kind='normal', indent=0, initial_offset=0):
         return out + '\n\n'
     else:
         return out + '\n'
+
+def run_precommand(cmd, dry_run=False):
+    cmd = shlex.split(cmd)
+    if dry_run:
+        print(f'Would run this pre-command:\n\t{cmd}')
+    else:
+        try:
+            check_call(cmd)
+        except CalledProcessError as e:
+            print(f'Pre-command failure! Error {e}.')
+            raise
 
 def clean(dry_run=False):
     if verbosity >= 0:
@@ -301,6 +313,7 @@ def parse_args():
     dry_run = "Do a dry run; don't actually change anything."
     silent = 'Print minimal information'
     trace = 'Pass the --trace argument to jekyll build'
+    precmd = "Don't execute the pre-command found in the configuration."
 
     parser = argparse.ArgumentParser(description=__doc__, epilog=epilog,
             usage='%(prog)s [options]', add_help=False)
@@ -338,6 +351,7 @@ def parse_args():
          help=jdir)
     oadd('-z', '--deploy-config', type=json_file, default=None, help=deploy_cfg)
     oadd('--trace', action='store_true', help=trace)
+    oadd('-P', '--skip-precmd', action='store_false', dest='use_precmd', help=precmd)
     oadd('-n', '--dry-run', action='store_true', help=dry_run)
     oadd('-h', '--help', action='help', help="Show this help message and exit.")
 
@@ -407,6 +421,9 @@ def main():
         else:
             d['dev'] = True
         d['incremental'] = args.incremental
+        pre_cmd = config.get('deploy_pre_command', None)
+        if args.use_precmd and pre_cmd:
+            run_precommand(pre_cmd, dry_run)
         success = build(**d, minify_html=args.minify_html,
                 minify_js=args.minify_js, dry_run=dry_run)
         if success:
@@ -422,6 +439,9 @@ def main():
             'watch': args.watch,
             'serve': args.serve
         }
+        pre_cmd = config.get('build_pre_command', None)
+        if args.use_precmd and pre_cmd:
+            run_precommand(pre_cmd, dry_run)
         success = build(**d, minify_html=args.minify_html,
                 minify_js=args.minify_js, dry_run=dry_run)
         code = 0 if success else 1
