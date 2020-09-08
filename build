@@ -88,15 +88,15 @@ def str_wrap(string, kind='normal', indent=0, initial_offset=0):
     else:
         return out + '\n'
 
-def run_precommand(cmd, dry_run=False):
+def run_external_command(cmd, dry_run=False):
     cmd = shlex.split(cmd)
     if dry_run:
-        print(f'Would run this pre-command:\n\t{cmd}')
+        print(f'Would run this command:\n\t{cmd}')
     else:
         try:
             check_call(cmd)
         except CalledProcessError as e:
-            print(f'Pre-command failure! Error {e}.')
+            print(f'Command failure! Error {e}.')
             raise
 
 def clean(dry_run=False):
@@ -274,15 +274,14 @@ def parse_args():
         return path.abspath(s)
 
     def json_file(s):
-        if s is None:
-            return None
-        try:
-            with open(s) as f:
-                json.loads(f.read())
-            return s
-        except (FileNotFoundError, IsADirectoryError, json.JSONDecodeError):
-            raise argparse.ArgumentTypeError(
-                f"The file {s} isn't a valid JSON config file!")
+        if s is not None:
+            try:
+                with open(s) as f:
+                    json.loads(f.read())
+            except (FileNotFoundError, IsADirectoryError, json.JSONDecodeError):
+                raise argparse.ArgumentTypeError(
+                    f"The file {s} isn't a valid JSON config file!")
+        return s
 
     dev = '''Do a development build. This is the default unless --deploy is
             given.'''
@@ -314,6 +313,7 @@ def parse_args():
     silent = 'Print minimal information'
     trace = 'Pass the --trace argument to jekyll build'
     precmd = "Don't execute the pre-command found in the configuration."
+    postcmd = "Don't execute the post-build command found in the configuration."
 
     parser = argparse.ArgumentParser(description=__doc__, epilog=epilog,
             usage='%(prog)s [options]', add_help=False)
@@ -352,6 +352,7 @@ def parse_args():
     oadd('-z', '--deploy-config', type=json_file, default=None, help=deploy_cfg)
     oadd('--trace', action='store_true', help=trace)
     oadd('-P', '--skip-precmd', action='store_false', dest='use_precmd', help=precmd)
+    oadd('-C', '--skip-postcmd', action='store_false', dest='use_postcmd', help=postcmd)
     oadd('-n', '--dry-run', action='store_true', help=dry_run)
     oadd('-h', '--help', action='help', help="Show this help message and exit.")
 
@@ -423,10 +424,12 @@ def main():
         d['incremental'] = args.incremental
         pre_cmd = config.get('deploy_pre_command', None)
         if args.use_precmd and pre_cmd:
-            run_precommand(pre_cmd, dry_run)
+            run_external_command(pre_cmd, dry_run)
         success = build(**d, minify_html=args.minify_html,
                 minify_js=args.minify_js, dry_run=dry_run)
         if success:
+            if args.use_postcmd and 'build_post_command' in config:
+                run_external_command(config['build_post_command'], dry_run)
             success = deploy(args, dry_run)
             code = 0 if success else 2
             exit(code)
@@ -441,10 +444,19 @@ def main():
         }
         pre_cmd = config.get('build_pre_command', None)
         if args.use_precmd and pre_cmd:
-            run_precommand(pre_cmd, dry_run)
+            run_external_command(pre_cmd, dry_run)
+        if args.use_postcmd and 'build_post_command' in config and (args.watch or args.serve) and not args.verbose:
+            print(str_wrap(f'''
+                Unable to run the post command
+                "{config["build_post_command"]}" because we aren't exiting
+                immediately after the build. If you run the build script in a
+                way that it will exit of its own accord when finish, then the
+                post command will run.'''))
         success = build(**d, minify_html=args.minify_html,
                 minify_js=args.minify_js, dry_run=dry_run)
         code = 0 if success else 1
+        if args.use_postcmd and 'build_post_command' in config and not (args.watch or args.serve):
+            run_external_command(config['build_post_command'], dry_run)
         exit(code)
 
 if __name__ == '__main__':
