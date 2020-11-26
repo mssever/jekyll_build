@@ -7,7 +7,8 @@ Only JavaScript files with the `.js` extension will be touched.
 import argparse
 import os
 from os.path import join
-import urllib.request, urllib.parse # for web-based JS minifier
+import urllib, urllib.request, urllib.parse # for web-based JS minifier
+import http # for exception handling
 import sys
 
 if os.name == 'nt':
@@ -61,6 +62,8 @@ def minify_js_file(name, dry_run=False):
         except urllib.error.URLError as e:
             print(f'Error: Connection failed! (Reason: {e.reason}) Not '
                   'minified.', end=' ')
+        except http.client.RemoteDisconnected as e:
+            print(f'Error: Remote end disconnected (http.client.RemoteDisconnected)', end=' ')
         else:
             if not text.startswith('// Error'):
                 if dry_run:
@@ -157,7 +160,7 @@ def main():
                     if args.js:
                         if verbosity == 1:
                             print(f'Minifying JavaScript file {filename}...',
-                                  end=' ')
+                                  end=' ', flush=True)
                         minify_js_file(filename, args.dry_run)
                         if verbosity == 1:
                             print('Done')
@@ -167,7 +170,7 @@ def main():
                 else:
                     if args.html:
                         if verbosity == 1:
-                            print(f'Minifying HTML file {filename}...', end=' ')
+                            print(f'Minifying HTML file {filename}...', end=' ', flush=True)
                         minify_html_file(filename, args.dry_run)
                         if verbosity == 1:
                             print('Done')
