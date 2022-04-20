@@ -3,6 +3,10 @@
 Controls the build process for this site. Use this script for all builds.
 
 It also manages git pushes to both repositories.
+
+Most common usage:
+
+For development, run `./build &` and to build and deploy to production, run `./build -D`
 '''
 
 import argparse
@@ -436,7 +440,11 @@ def main():
                     minify_js=args.minify_js, dry_run=dry_run)
             if success:
                 if args.use_postcmd and 'build_post_command' in config:
-                    run_external_command(config['build_post_command'], dry_run)
+                    if isinstance(config['build_post_command'], str):
+                        run_external_command(config['build_post_command'], dry_run)
+                    else:
+                        for command in config['build_post_command']:
+                            run_external_command(command, dry_run)
                 success = deploy(args, dry_run)
                 code = 0 if success else 2
                 exit(code)
@@ -461,13 +469,17 @@ def main():
                 Unable to run the post command
                 "{config["build_post_command"]}" because we aren't exiting
                 immediately after the build. If you run the build script in a
-                way that it will exit of its own accord when finish, then the
+                way that it will exit of its own accord when finished, then the
                 post command will run.'''))
         success = build(**d, minify_html=args.minify_html,
                 minify_js=args.minify_js, dry_run=dry_run)
         code = 0 if success else 1
         if args.use_postcmd and 'build_post_command' in config and not (args.watch or args.serve):
-            run_external_command(config['build_post_command'], dry_run)
+            if isinstance(config['build_post_command'], str):
+                run_external_command(config['build_post_command'], dry_run)
+            else:
+                for command in config['build_post_command']:
+                    run_external_command(command, dry_run)
         exit(code)
 
 if __name__ == '__main__':
