@@ -10,11 +10,13 @@ For development, run `./build &` and to build and deploy to production, run `./b
 '''
 
 import argparse
+import atexit
 import os
 import re
 import shlex
 import shutil
 import sys
+import tempfile
 import textwrap
 from subprocess import call, check_call, CalledProcessError, DEVNULL
 
@@ -41,6 +43,22 @@ if os.name == 'nt':
 build_dir = ''
 config = None
 verbosity = 0
+
+class AlreadyRunningError(Exception):
+    pass
+
+def create_pidfile():
+    pid = str(os.getpid())
+    pidfile = path.join(tempfile.gettempdir(), 'jekyll_build.pid')
+    if path.isfile(pidfile):
+        message = f'jekyll_build is already running (pid {pid}). You cannot have more than one script executing simultaneously. If this error is incorrect, delete the file "{pidfile}".'
+        raise AlreadyRunningError(message)
+    with open(pidfile, 'w') as f:
+        f.write(pid)
+    atexit.register(remove_pidfile, pidfile)
+
+def remove_pidfile(pidfile):
+    os.unlink(pidfile)
 
 def is_build_dir(dirname):
     try:
@@ -483,4 +501,5 @@ def main():
         exit(code)
 
 if __name__ == '__main__':
+    create_pidfile()
     main()
