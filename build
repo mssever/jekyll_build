@@ -50,12 +50,18 @@ class AlreadyRunningError(Exception):
 def create_pidfile():
     pid = str(os.getpid())
     pidfile = path.join(tempfile.gettempdir(), 'jekyll_build.pid')
+    if verbosity > 0:
+        print(f'\npid:\t\t{pid}\npidfile:\t{pidfile}')
     if path.isfile(pidfile):
-        message = f'jekyll_build is already running (pid {pid}). You cannot have more than one script executing simultaneously. If this error is incorrect, delete the file "{pidfile}".'
+        with open(pidfile) as f:
+            oldpid = f.read()
+        message = f'jekyll_build is already running (pid {oldpid}). You cannot have more than one script executing simultaneously. If this error is incorrect, delete the file "{pidfile}".'
         raise AlreadyRunningError(message)
     with open(pidfile, 'w') as f:
         f.write(pid)
     atexit.register(remove_pidfile, pidfile)
+    if verbosity > 0:
+        print('Created pidfile and registered exit handler.')
 
 def remove_pidfile(pidfile):
     os.unlink(pidfile)
@@ -394,6 +400,7 @@ def main():
     if args.quiet:
         verbosity = -1
     os.environ['JEKYLL_BUILD_VERBOSITY'] = str(verbosity)
+    create_pidfile()
     if verbosity > 0:
         print("os.environ: " + str(os.environ))
         print("Python sees this OS as: {}".format(os.name))
@@ -501,5 +508,4 @@ def main():
         exit(code)
 
 if __name__ == '__main__':
-    create_pidfile()
     main()
