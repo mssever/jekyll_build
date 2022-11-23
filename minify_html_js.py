@@ -89,7 +89,12 @@ def parse_args():
         return s
 
     def comma_separated_string(s):
-        return tuple(s.split(','))
+        parts = s.split(',')
+
+        # Make resiliant in case of stray commas at the end of config items
+        while len(parts) > 0 and len(parts[-1]) == 0:
+            del parts[-1]
+        return tuple(parts)
 
     def comma_separated_extensions(s):
         return tuple('.{}'.format(i) for i in comma_separated_string(s))
