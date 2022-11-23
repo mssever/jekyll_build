@@ -10,6 +10,7 @@ from os.path import join
 import urllib, urllib.request, urllib.parse # for web-based JS minifier
 import http # for exception handling
 import sys
+import requests
 
 if os.name == 'nt':
     # Make the print command automatically flush in Windows. Otherwise, nothing
@@ -29,6 +30,9 @@ See https://htmlmin.readthedocs.io/en/latest/index.html
 ''', file=sys.stderr)
     raise
 
+class URLError(Exception):
+    pass
+
 verbosity = 0
 if os.environ.get('JEKYLL_BUILD_VERBOSITY', False) != False:
     verbosity = int(os.environ['JEKYLL_BUILD_VERBOSITY'])
@@ -40,7 +44,7 @@ def minify_html_file(name, dry_run=False):
         minifier.input(f.read())
         f.seek(0)
         if dry_run:
-            print(f'Would write file {name}.')
+            print(f'Would write file {name}.', flush=True)
         else:
             f.truncate()
             f.write(minifier.finalize())
@@ -50,24 +54,32 @@ def minify_js_file(name, dry_run=False):
     with open(name, 'r+', newline='\n', encoding='utf-8') as f:
         contents = f.read()
         f.seek(0)
-        url = 'https://javascript-minifier.com/raw'
-        data = urllib.parse.urlencode({'input': contents}).encode('ascii')
-        req = urllib.request.Request(url, data=data)
+        url = 'https://www.toptal.com/developers/javascript-minifier/api/raw'
         try:
-            with urllib.request.urlopen(req) as response:
-                text = str(response.read(), 'utf-8')
-        except urllib.error.HTTPError as e:
-            print(f'Error: Remote server at {url} returned status code '
-                  f'{e.code} {e.read()}! Not minified.', end=' ')
-        except urllib.error.URLError as e:
-            print(f'Error: Connection failed! (Reason: {e.reason}) Not '
-                  'minified.', end=' ')
-        except http.client.RemoteDisconnected as e:
-            print(f'Error: Remote end disconnected (http.client.RemoteDisconnected)', end=' ')
+            response = requests.post(url, data={'input': contents})
+            if not (200 <= response.status_code < 300):
+                raise URLError(response.status_code)
+            response = response.text
+            text = '{}'.format(response)
+        # data = urllib.parse.urlencode({'input': contents}).encode('ascii')
+        # req = urllib.request.Request(url, data=data)
+        # try:
+        #     with urllib.request.urlopen(req) as response:
+        #         text = str(response.read(), 'utf-8')
+        # except urllib.error.HTTPError as e:
+        #     print(f'Error: Remote server at {url} returned status code '
+        #           f'{e.code} {e.read()}! Not minified.', end=' ')
+        # except urllib.error.URLError as e:
+        #     print(f'Error: Connection failed! (Reason: {e.reason}, flush=True) Not '
+        #           'minified.', end=' ')
+        # except http.client.RemoteDisconnected as e:
+        #     print(f'Error: Remote end disconnected (http.client.RemoteDisconnected)', end=' ')
+        except URLError as e:
+            print(f'Error: Remote server at {url} returned status code {e}! Not minified.', end=' ', flush=True)
         else:
             if not text.startswith('// Error'):
                 if dry_run:
-                    print(f'Would write file {name}.')
+                    print(f'Would write file {name}.', flush=True)
                 else:
                     f.truncate()
                     f.write(text)
@@ -80,7 +92,7 @@ def minify_js_file(name, dry_run=False):
                 if os.name == 'posix':
                     sys.stdout.write("\033[0m")
                 if verbosity <= 0:
-                    print('\n')
+                    print('\n', flush=True)
 
 def parse_args():
     def directory(s):
@@ -168,7 +180,7 @@ def main():
                                   end=' ', flush=True)
                         minify_js_file(filename, args.dry_run)
                         if verbosity == 1:
-                            print('Done')
+                            print('Done', flush=True)
                     elif verbosity == 1:
                         print('JavaScript minification not selected so '
                               f'skipping {filename}...')
@@ -178,7 +190,7 @@ def main():
                             print(f'Minifying HTML file {filename}...', end=' ', flush=True)
                         minify_html_file(filename, args.dry_run)
                         if verbosity == 1:
-                            print('Done')
+                            print('Done', flush=True)
                     elif verbosity == 1:
                         print('HTML minification not selected so skipping '
                               f'{filename}...')
