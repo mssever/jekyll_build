@@ -10,7 +10,10 @@ from os.path import join
 import urllib, urllib.request, urllib.parse # for web-based JS minifier
 import http # for exception handling
 import sys
+import time
 import requests
+
+from requests.exceptions import ConnectionError, HTTPError, Timeout, TooManyRedirects
 
 if os.name == 'nt':
     # Make the print command automatically flush in Windows. Otherwise, nothing
@@ -29,9 +32,6 @@ sudo pip3 install htmlmin
 See https://htmlmin.readthedocs.io/en/latest/index.html
 ''', file=sys.stderr)
     raise
-
-class URLError(Exception):
-    pass
 
 verbosity = 0
 if os.environ.get('JEKYLL_BUILD_VERBOSITY', False) != False:
@@ -56,26 +56,15 @@ def minify_js_file(name, dry_run=False):
         f.seek(0)
         url = 'https://www.toptal.com/developers/javascript-minifier/api/raw'
         try:
-            response = requests.post(url, data={'input': contents})
-            if not (200 <= response.status_code < 300):
-                raise URLError(response.status_code)
-            response = response.text
-            text = '{}'.format(response)
-        # data = urllib.parse.urlencode({'input': contents}).encode('ascii')
-        # req = urllib.request.Request(url, data=data)
-        # try:
-        #     with urllib.request.urlopen(req) as response:
-        #         text = str(response.read(), 'utf-8')
-        # except urllib.error.HTTPError as e:
-        #     print(f'Error: Remote server at {url} returned status code '
-        #           f'{e.code} {e.read()}! Not minified.', end=' ')
-        # except urllib.error.URLError as e:
-        #     print(f'Error: Connection failed! (Reason: {e.reason}, flush=True) Not '
-        #           'minified.', end=' ')
-        # except http.client.RemoteDisconnected as e:
-        #     print(f'Error: Remote end disconnected (http.client.RemoteDisconnected)', end=' ')
-        except URLError as e:
-            print(f'Error: Remote server at {url} returned status code {e}! Not minified.', end=' ', flush=True)
+            response = requests.post(url, data={'input': contents}, timeout=20)
+            response.raise_for_status()
+            text = response.text
+        except HTTPError as e:
+            if e.response.status_code == 429:
+                return 429
+            print(f'Error: Remote server at {url} returned this error: "{e}"! Not minified.', end=' ', flush=True)
+        except (ConnectionError, Timeout, TooManyRedirects) as e:
+            print(f'Error: Remote server at {url} returned this error: "{e}"! Not minified.', end=' ', flush=True)
         else:
             if not text.startswith('// Error'):
                 if dry_run:
@@ -178,7 +167,12 @@ def main():
                         if verbosity == 1:
                             print(f'Minifying JavaScript file {filename}...',
                                   end=' ', flush=True)
-                        minify_js_file(filename, args.dry_run)
+                        result = minify_js_file(filename, args.dry_run)
+                        while result == 429:
+                            print(f'Rate limit hit while attempting to minify {filename}. Waiting 90 seconds before trying again...', flush=True)
+                            time.sleep(90)
+                            print('Wait time finished. Continuing...', flush=True)
+                            result = minify_js_file(filename, args.dry_run)
                         if verbosity == 1:
                             print('Done', flush=True)
                     elif verbosity == 1:
