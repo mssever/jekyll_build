@@ -20,8 +20,8 @@
     "xampp_path": "C:\\xampp\\xampp-control.exe",
 
     //Pre-commands (build and deploy): Commands to run before the build is started
-    "build_pre_command": null
-    "deploy_pre_command": null
+    "build_pre_command": null,
+    "deploy_pre_command": null,
 
     //Post command (build only): Command to run after build is finished but before deploy
     //NOTE: Will not be called when Jekyll is monitoring the directory for changes,
