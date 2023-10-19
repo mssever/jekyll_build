@@ -60,7 +60,7 @@ def minify_js_file(name, dry_run=False):
             response.raise_for_status()
             text = response.text
         except HTTPError as e:
-            if e.response.status_code == 429:
+            if e.response.status_code == 429: # 429 Too Many Requests
                 return 429
             print(f'Error: Remote server at {url} returned this error: "{e}"! Not minified.', end=' ', flush=True)
         except (ConnectionError, Timeout, TooManyRedirects) as e:
