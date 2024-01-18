@@ -127,9 +127,14 @@ def run_external_command(cmd, dry_run=False):
             print(f'Command failure! Error {e}.')
             raise
 
-def clean(dry_run=False):
+def clean(dry_run=False, clean_directories=[]):
     if verbosity >= 0:
         print('Cleaning...')
+    if not dry_run and len(clean_directories) > 0:
+        for dir_ in clean_directories:
+            if verbosity>= 0:
+                print(f'Removing directory {dir_}...')
+            shutil.rmtree(dir_)
     cmd = [path.join(build_dir, 'clean.sh'), build_dir]
     if os.name == 'nt':
         cmd.insert(0, 'bash')
@@ -434,7 +439,8 @@ def main():
         code = 0 if success else 4
         return code
     elif args.clean:
-        success = clean(dry_run)
+        clean_directories = config.get('clean_directories')
+        success = clean(dry_run, clean_directories)
         code = 0 if success else 3
         return code
     elif args.apache:

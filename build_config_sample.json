@@ -26,5 +26,8 @@
     //Post command (build only): Command to run after build is finished but before deploy
     //NOTE: Will not be called when Jekyll is monitoring the directory for changes,
     //e.g., when build is called without arguments.
-    "build_post_command": null
+    "build_post_command": [],
+    
+    //Additional directories to clean while cleaning.
+    "clean_directories": []
 }
