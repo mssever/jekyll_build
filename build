@@ -130,9 +130,12 @@ def run_external_command(cmd, dry_run=False):
 def clean(dry_run=False, clean_directories=[]):
     if verbosity >= 0:
         print('Cleaning...')
-    if not dry_run and len(clean_directories) > 0:
+    if dry_run:
         for dir_ in clean_directories:
-            if verbosity>= 0:
+            print(f'Cleaner: Would delete {dir_} and its contents.')
+    else:
+        for dir_ in clean_directories:
+            if verbosity >= 0:
                 print(f'Removing directory {dir_}...')
             shutil.rmtree(dir_)
     cmd = [path.join(build_dir, 'clean.sh'), build_dir]
@@ -187,13 +190,13 @@ def update_ctags(dry_run=False):
     return True if result == 0 else False
 
 def build(dev, minify_html, minify_js, incremental=True, watch=False,
-          serve=False, trace=False, dry_run=False):
+          serve=False, trace=False, dry_run=False, clean_directories=[]):
     mode = 'serve' if serve else 'build'
     which = 'build_production.sh'
     if dev:
         which = 'build_dev.sh'
     else:
-        success = clean(dry_run)
+        success = clean(dry_run, clean_directories=clean_directories)
         if not success:
             return False
     update_ctags(dry_run)
@@ -439,7 +442,7 @@ def main():
         code = 0 if success else 4
         return code
     elif args.clean:
-        clean_directories = config.get('clean_directories')
+        clean_directories = config.get('clean_directories', [])
         success = clean(dry_run, clean_directories)
         code = 0 if success else 3
         return code
@@ -468,7 +471,8 @@ def main():
             if args.use_precmd and pre_cmd:
                 run_external_command(pre_cmd, dry_run)
             success = build(**d, minify_html=args.minify_html,
-                    minify_js=args.minify_js, dry_run=dry_run)
+                    minify_js=args.minify_js, dry_run=dry_run,
+                    clean_directories=config.get('clean_directories', []))
             if success:
                 if args.use_postcmd and 'build_post_command' in config:
                     if isinstance(config['build_post_command'], str):
