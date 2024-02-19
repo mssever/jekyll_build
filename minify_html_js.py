@@ -162,7 +162,7 @@ def main():
                 continue
             if file_.endswith(args.extensions):
                 filename = join(root, file_)
-                if filename.endswith('.js'):
+                if filename.endswith('.js') or filename.endswith('.mjs'):
                     if args.js:
                         if verbosity == 1:
                             print(f'Minifying JavaScript file {filename}...',
