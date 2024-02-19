@@ -95,7 +95,7 @@ def parse_args():
     add = parser.add_argument
 
     add(dest='source', metavar='LOCAL_SITE_SOURCE', type=valid_directory)
-    add('-c', '--config', default='_deploy.json', type=config_file)
+    add('-c', '--config', default='_deploy.jsonc', type=config_file)
     add('-n', '--dry-run', action='store_true')
 
     return parser.parse_args()

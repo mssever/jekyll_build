@@ -1,7 +1,7 @@
 /* Build configuration file
  *
  * This is an example config file for the build system. Copy it to your Jekyll
- * site root and name it _build_config.json.
+ * site root and name it _build_config.jsonc.
  *
  * WARNING: The parser isn't smart enough to recognize // comments that start
  * mid-line. Use the multiline style for that.

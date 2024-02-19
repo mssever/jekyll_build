@@ -56,15 +56,15 @@ Installation
    location and refer to it from all your Jekyll projects, or you can add it to
    your project as a Git submodule.
 
-2. Copy `build_config_sample.json` to your project's base directory and call it
-   `_build_config.json`. Feel free to check this file into your project's source
+2. Copy `build_config_sample.jsonc` to your project's base directory and call it
+   `_build_config.jsonc`. Feel free to check this file into your project's source
    control.
 
-3. Edit `_build_config.json` to set the appropriate configuration options. For
+3. Edit `_build_config.jsonc` to set the appropriate configuration options. For
    documentation on the "minify_options" key, run `minify_html_js.py --help`.
 
-4. Copy `deploy_config_sample.json` to your project's base directory. Either
-   call it `_deploy.json` or pass in the path to the configuration file every
+4. Copy `deploy_config_sample.jsonc` to your project's base directory. Either
+   call it `_deploy.jsonc` or pass in the path to the configuration file every
    time you deploy.
 
 5. Edit your deploy configuration file and configure it to deploy your site.

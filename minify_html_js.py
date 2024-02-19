@@ -113,7 +113,7 @@ def parse_args():
     add = options.add_argument
     root = '''The root of the tree to minify. Every .html file under the tree
         will be minified. Must be a directory'''
-    starts_with = ''''A comma-separated list of strings to match filenames
+    starts_with = '''A comma-separated list of strings to match filenames
         against. Any file whose basename starts with one of the strings will not
         be minified.'''
     includes = '''A comma-separated list of strings to match directory names
@@ -152,7 +152,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    for root, dirs, files in os.walk(args.root):
+    for root, _, files in os.walk(args.root):
         if any(dirname in root for dirname in args.omit_dirname_includes):
             continue
         for file_ in files:

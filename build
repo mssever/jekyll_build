@@ -69,7 +69,7 @@ def remove_pidfile(pidfile):
 def is_build_dir(dirname):
     try:
         d = os.listdir(dirname)
-        return all(i in d for i in ['build_config_sample.json',
+        return all(i in d for i in ['build_config_sample.jsonc',
             'minify_html_js.py', 'build_dev.sh', 'clean.sh', 'deploy.sh'])
     except (FileNotFoundError, NotADirectoryError):
         return False
@@ -152,11 +152,11 @@ def launch_apache(dry_run=False):
         print("Unable to launch Apache on this system.")
         return False
     elif 'xampp_path' not in config.keys():
-        with open(path.join(build_dir, 'build_config_sample.json')) as f:
+        with open(path.join(build_dir, 'build_config_sample.jsonc')) as f:
             config['xampp_path'] = json.loads(f.read())['xampp_path']
         print('\n' + str_wrap(f'''
             WARNING: Not configured. Please set the "xampp_path" option in the
-            config file ("_build_config.json"). Using the default path
+            config file ("_build_config.jsonc"). Using the default path
             ({config['xampp_path']}), which may or may not work.
             '''))
     elif ' ' in config['xampp_path']:
@@ -342,7 +342,7 @@ def parse_args():
     epilog = '''When run with no arguments, this script runs a development
             build, passing Jekyll the --watch and --incremental arguments.'''
     verbose = 'Print all available debugging information'
-    deploy_cfg = 'Path to the deploy configuration file. Default: _deploy.json'
+    deploy_cfg = 'Path to the deploy configuration file. Default: _deploy.jsonc'
     no_minify = """Don't minify HTML or JavaScript. CSS minification is handled
             by Jekyll, not the build scripts. Equivalent to -HJ."""
     no_minify_html = "Don't minify HTML."
@@ -416,9 +416,9 @@ def main():
         print("Dry run enabled")
     global build_dir
     global config
-    config_file = '_build_config.json'
+    config_file = '_build_config.jsonc'
     if not args.deploy_config:
-        args.deploy_config = '_deploy.json'
+        args.deploy_config = '_deploy.jsonc'
     build_dir = find_build_dir()
     if verbosity >= 0:
         print(f'Jekyll source directory: {args.jekyll_dir}')
@@ -432,7 +432,7 @@ def main():
         exit(str_wrap(f'''
             Couldn't find the configuration file "{config_file}". Please create
             it before continuing. You can find an example at
-            "{path.join(build_dir, 'build_config_sample.json')}".
+            "{path.join(build_dir, 'build_config_sample.jsonc')}".
             '''))
     with open(config_file) as f:
         config = json.loads(f.read())
