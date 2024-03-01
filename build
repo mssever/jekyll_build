@@ -137,7 +137,19 @@ def clean(dry_run=False, clean_directories=[]):
         for dir_ in clean_directories:
             if verbosity >= 0:
                 print(f'Removing directory {dir_}...')
-            shutil.rmtree(dir_)
+            try:
+                shutil.rmtree(dir_)
+            except FileNotFoundError:
+                if verbosity >= 0:
+                    print(f'Directory {dir_} doesn\'t exist, so there\'s nothing to delete.')
+            except PermissionError:
+                if verbosity >= 0:
+                    print(f'Permission denied when trying to delete {dir_}.')
+                    return False
+            except OSError as e:
+                if verbosity >= 0:
+                    print(f'An error occurred when trying to delete {dir_}: {e}')
+                    return False
     cmd = [path.join(build_dir, 'clean.sh'), build_dir]
     if os.name == 'nt':
         cmd.insert(0, 'bash')
