@@ -250,7 +250,7 @@ def minify(js=True, html=True, dry_run=False):
         return True
     if verbosity >= 0:
         print('Minifying...')
-    cmd = [path.join(build_dir, 'minify.sh'), build_dir, config.get('minify_options', '')]
+    cmd = [path.join(build_dir, 'minify.sh'), build_dir, config.V('minify_options', '')]
     if js:
         cmd.append('--js')
     if html:
@@ -346,6 +346,7 @@ def parse_args():
             deploying.'''
     push = '''Does a `git push` to each remote configured herein. All other
             options are ignored when this is in effect.'''
+    remotes = '''List all configured git remotes which will be pushed to with -g/--git-push'''
     xampp = '''Windows only: Launch Apache, which must have been previously
             configured on the machine and live at the configured path.'''
     ctags = 'Update the tags file.'
@@ -383,6 +384,7 @@ def parse_args():
     gadd('-p', '--production', action='store_true', help=prod)
     gadd('-c', '--clean', action='store_true', help=clean)
     gadd('-g', '--git-push', dest='push', action='store_true', help=push)
+    gadd('--list-remotes', dest='list_remotes', action='store_true', help=remotes)
     gadd('-S', '--apache', action='store_true', help=xampp)
     gadd('-t', '--ctags', action='store_true', help=ctags)
 
@@ -414,25 +416,29 @@ def parse_args():
 
 def main():
     args = parse_args()
+    building = True
+    if args.push or args.list_remotes:
+        building = False
     dry_run = args.dry_run
     global verbosity
     verbosity = 1 if args.verbose else 0
     if args.quiet:
         verbosity = -1
     os.environ['JEKYLL_BUILD_VERBOSITY'] = str(verbosity)
-    create_pidfile()
-    if verbosity > 0:
-        print("os.environ: " + str(os.environ))
-        print("Python sees this OS as: {}".format(os.name))
-    if dry_run and verbosity >= 0:
-        print("Dry run enabled")
+    if building:
+        create_pidfile()
+        if verbosity > 0:
+            print("os.environ: " + str(os.environ))
+            print("Python sees this OS as: {}".format(os.name))
+        if dry_run and verbosity >= 0:
+            print("Dry run enabled")
     global build_dir
     global config
     config_file = '_build_config.jsonc'
     if not args.deploy_config:
         args.deploy_config = '_deploy.jsonc'
     build_dir = find_build_dir()
-    if verbosity >= 0:
+    if verbosity >= 0 and building:
         print(f'Jekyll source directory: {args.jekyll_dir}')
         print(f'Build scripts located in: {build_dir}')
     if not args.minify:
@@ -453,6 +459,11 @@ def main():
         success = git_push(*targets, dry_run=dry_run)
         code = 0 if success else 4
         return code
+    if args.list_remotes:
+        remotes = config.get('git_remotes', ['origin'])
+        print('Configured git remotes:\n- ', end='')
+        print('\n- '.join(remotes))
+        return 0
     elif args.clean:
         clean_directories = config.get('clean_directories', [])
         success = clean(dry_run, clean_directories)
