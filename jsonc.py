@@ -5,8 +5,9 @@ line by themselves and must start with two slashes (//).
 
 import json
 import re
+from typing import Any
 
-def loads(string):
+def loads(string: str) -> Any:
     multiline_comments = re.compile(r'/\*'
                                     r'.*?' # Non-greedy matching
                                     r'\*/', re.DOTALL)
@@ -15,9 +16,9 @@ def loads(string):
     return json.loads('\n'.join(
         i for i in line_endings.split(string) if not i.strip().startswith('//')))
 
-def load(filename):
+def load(filename: str) -> Any:
     with open(filename) as f:
-        return loads(f.readlines())
+        return loads(''.join(f.readlines()))
 
 JSONDecodeError = json.JSONDecodeError
 

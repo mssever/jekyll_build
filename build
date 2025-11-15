@@ -19,6 +19,7 @@ import sys
 import tempfile
 import textwrap
 from subprocess import call, check_call, CalledProcessError, DEVNULL
+from typing import Any, Literal
 
 path = os.path
 
@@ -40,14 +41,12 @@ if os.name == 'nt':
     print = functools.partial(print, flush=True)
 
 # Initialize some global variables.
-build_dir = ''
-config = None
-verbosity = 0
+verbosity: int = 0
 
 class AlreadyRunningError(Exception):
     pass
 
-def create_pidfile():
+def create_pidfile() -> None:
     pid = str(os.getpid())
     pidfile = path.join(tempfile.gettempdir(), 'jekyll_build.pid')
     if verbosity > 0:
@@ -63,10 +62,10 @@ def create_pidfile():
     if verbosity > 0:
         print('Created pidfile and registered exit handler.')
 
-def remove_pidfile(pidfile):
+def remove_pidfile(pidfile: str) -> None:
     os.unlink(pidfile)
 
-def is_build_dir(dirname):
+def is_build_dir(dirname: str) -> bool:
     try:
         d = os.listdir(dirname)
         return all(i in d for i in ['build_config_sample.jsonc',
@@ -74,7 +73,7 @@ def is_build_dir(dirname):
     except (FileNotFoundError, NotADirectoryError):
         return False
 
-def find_build_dir():
+def find_build_dir() -> str:
     bdir = path.dirname(path.realpath(__file__))
 
     # Sanity check needed to convince Windows about the true location of this
@@ -96,7 +95,7 @@ def find_build_dir():
             exit(error_message.format(bdir))
     return bdir
 
-def str_wrap(string, kind='normal', indent=0, initial_offset=0):
+def str_wrap(string: str, kind: str = 'normal', indent: int = 0, initial_offset: int = 0) -> str:
     cols, lines = shutil.get_terminal_size()
     cols = min(cols, 100)
     if kind == 'help':
@@ -116,8 +115,8 @@ def str_wrap(string, kind='normal', indent=0, initial_offset=0):
     else:
         return out + '\n'
 
-def run_external_command(cmd, dry_run=False):
-    cmd = shlex.split(cmd)
+def run_external_command(command: str, dry_run: bool = False) -> None:
+    cmd = shlex.split(command)
     if dry_run:
         print(f'Would run this command:\n\t{cmd}')
     else:
@@ -127,7 +126,7 @@ def run_external_command(cmd, dry_run=False):
             print(f'Command failure! Error {e}.')
             raise
 
-def clean(dry_run=False, clean_directories=[], clean_files=[]):
+def clean(dry_run: bool = False, clean_directories: list[str] = [], clean_files: list[str] = []) -> bool:
     if verbosity >= 0:
         print('Cleaning...')
     if dry_run:
@@ -175,7 +174,7 @@ def clean(dry_run=False, clean_directories=[], clean_files=[]):
     result = call(cmd)
     return True if result == 0 else False
 
-def launch_apache(dry_run=False):
+def launch_apache(config: dict[str, Any], dry_run: bool = False) -> bool:
     if os.name != 'nt':
         print("Unable to launch Apache on this system.")
         return False
@@ -204,7 +203,7 @@ def launch_apache(dry_run=False):
     result = call(cmd)
     return True if result == 0 else False
 
-def update_ctags(dry_run=False):
+def update_ctags(dry_run: bool = False) -> bool:
     cmd = ['ctags', '.']
     if dry_run:
         print(f'Would call {cmd}')
@@ -217,10 +216,10 @@ def update_ctags(dry_run=False):
         result = call(cmd)
     return True if result == 0 else False
 
-def build(dev, minify_html, minify_js, incremental=True, watch=False,
-          serve=False, trace=False, dry_run=False, clean_directories=[]):
-    mode = 'serve' if serve else 'build'
-    which = 'build_production.sh'
+def build(config: dict[str, Any], dev: bool, minify_html: bool, minify_js: bool, incremental: bool = True, watch: bool = False,
+          serve: bool = False, trace: bool = False, dry_run: bool = False, clean_directories: list[str] = []) -> bool:
+    mode: Literal['serve', 'build'] = 'serve' if serve else 'build'
+    which: Literal['build_production.sh', 'build_dev.sh'] = 'build_production.sh'
     if dev:
         which = 'build_dev.sh'
     else:
@@ -246,7 +245,7 @@ def build(dev, minify_html, minify_js, incremental=True, watch=False,
         else:
             check_call(args)
         if not dev or (not watch and not serve and not incremental):
-            return minify(js=minify_js, html=minify_html, dry_run=dry_run)
+            return minify(config, js=minify_js, html=minify_html, dry_run=dry_run)
     except CalledProcessError:
         return False
     except KeyboardInterrupt:
@@ -259,7 +258,7 @@ def build(dev, minify_html, minify_js, incremental=True, watch=False,
         if verbosity > 0:
             print('Build process ended.')
 
-def minify(js=True, html=True, dry_run=False):
+def minify(config: dict[str, Any], js: bool = True, html: bool = True, dry_run: bool = False) -> bool:
     if js is False and html is False:
         if verbosity > 0:
             print('Minification is disabled.')
@@ -450,7 +449,6 @@ def main():
         if dry_run and verbosity >= 0:
             print("Dry run enabled")
     global build_dir
-    global config
     config_file = '_build_config.jsonc'
     if not args.deploy_config:
         args.deploy_config = '_deploy.jsonc'
@@ -470,7 +468,7 @@ def main():
             "{path.join(build_dir, 'build_config_sample.jsonc')}".
             '''))
     with open(config_file) as f:
-        config = json.loads(f.read())
+        config: dict[str, Any] = json.loads(f.read())
 
     if args.push:
         targets = config.get('git_remotes', ['origin'])
@@ -492,7 +490,7 @@ def main():
         return code
     
     elif args.apache:
-        success = launch_apache(dry_run)
+        success = launch_apache(config, dry_run)
         code = 0 if success else 5
         return code
     
@@ -517,7 +515,7 @@ def main():
             pre_cmd = config.get('deploy_pre_command', None)
             if args.use_precmd and pre_cmd:
                 run_external_command(pre_cmd, dry_run)
-            success = build(**d, minify_html=args.minify_html,
+            success = build(config, **d, minify_html=args.minify_html,
                     minify_js=args.minify_js, dry_run=dry_run,
                     clean_directories=config.get('clean_directories', []))
             if success:
@@ -554,7 +552,7 @@ def main():
                 immediately after the build. If you run the build script in a
                 way that it will exit of its own accord when finished, then the
                 post command will run.'''))
-        success = build(**d, minify_html=args.minify_html,
+        success = build(config, **d, minify_html=args.minify_html,
                 minify_js=args.minify_js, dry_run=dry_run)
         code = 0 if success else 1
         if args.use_postcmd and 'build_post_command' in config and not (args.watch or args.serve):

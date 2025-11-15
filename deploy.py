@@ -11,7 +11,7 @@ import argparse
 import jsonc as json
 import os
 import shlex
-
+from typing import Any, Dict, Optional, List
 from subprocess import check_call, CalledProcessError
 
 if os.name == 'nt':
@@ -25,11 +25,22 @@ if os.environ.get('JEKYLL_BUILD_VERBOSITY', False) != False:
     verbosity = int(os.environ['JEKYLL_BUILD_VERBOSITY'])
 
 class GenericContainer:
-    def __str__(self):
+    site_dir: Optional[str]
+    user: Optional[str]
+    remote_path: Optional[str]
+    delete: bool
+    port: Optional[int]
+    flags: List[str]
+    exclude: List[str]
+    include: List[str]
+    exclude_file: Optional[str]
+    include_file: Optional[str]
+
+    def __str__(self) -> str:
         return '\n'.join(
             f'{repr(k)}: {repr(v)}' for k, v in sorted(self.__dict__.items()))
 
-def make_rsync_cmd(container):
+def make_rsync_cmd(container: GenericContainer) -> List[str]:
     cmd = ['rsync']
     if verbosity == 1:
         cmd += ['--verbose']
@@ -59,7 +70,7 @@ def make_rsync_cmd(container):
                       "this, make sure that your current working directory is "
                       f"in the same drive as {local}.")
         raise RuntimeError(message)
-    if not local.endswith(os.path.sep) and not local.endswith('/'):
+    if local is not None and not local.endswith(os.path.sep) and not local.endswith('/'):
         local += os.path.sep
     remote = []
     if container.user:
@@ -69,8 +80,8 @@ def make_rsync_cmd(container):
     cmd += [local, remote]
     return cmd
 
-def parse_args():
-    def config_file(s):
+def parse_args() -> argparse.Namespace:
+    def config_file(s: str) -> Dict[str, Any]:
         try:
             with open(s) as f:
                 return json.loads(f.read())
@@ -78,7 +89,7 @@ def parse_args():
             raise argparse.ArgumentTypeError(
                                     f"The file {s} isn't a valid config file!")
 
-    def valid_directory(s):
+    def valid_directory(s: str) -> str:
         s = os.path.abspath(s)
         if os.path.isdir(s):
             if len(os.listdir(s)) > 0:
@@ -100,7 +111,7 @@ def parse_args():
 
     return parser.parse_args()
 
-def main():
+def main() -> None:
     args = parse_args()
     if args.config.get('method', '') != 'rsync':
         exit('Currently, the only deploy method supported is rsync. Please set '

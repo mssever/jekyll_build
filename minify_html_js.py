@@ -6,9 +6,8 @@ Only JavaScript files with the `.js` extension will be touched.
 
 import argparse
 import os
+from typing import Any
 from os.path import join
-import urllib, urllib.request, urllib.parse # for web-based JS minifier
-import http # for exception handling
 import sys
 import time
 import requests
@@ -37,7 +36,7 @@ verbosity = 0
 if os.environ.get('JEKYLL_BUILD_VERBOSITY', False) != False:
     verbosity = int(os.environ['JEKYLL_BUILD_VERBOSITY'])
 
-def minify_html_file(name, dry_run=False):
+def minify_html_file(name: str, dry_run: bool = False) -> None:
     minifier = htmlmin.Minifier(remove_comments=True, remove_empty_space=True,
                                 reduce_boolean_attributes=True)
     with open(name, 'r+', newline='\n', encoding='utf-8') as f: #encoding is needed on Windows
@@ -49,7 +48,7 @@ def minify_html_file(name, dry_run=False):
             f.truncate()
             f.write(minifier.finalize())
 
-def minify_js_file(name, dry_run=False):
+def minify_js_file(name: str, dry_run: bool = False) -> int | None:
     '''Currently makes http requests for minification'''
     with open(name, 'r+', newline='\n', encoding='utf-8') as f:
         contents = f.read()
@@ -60,7 +59,7 @@ def minify_js_file(name, dry_run=False):
             response.raise_for_status()
             text = response.text
         except HTTPError as e:
-            if e.response.status_code == 429: # 429 Too Many Requests
+            if e.response is not None and e.response.status_code == 429: # 429 Too Many Requests
                 return 429
             print(f'Error: Remote server at {url} returned this error: "{e}"! Not minified.', end=' ', flush=True)
         except (ConnectionError, Timeout, TooManyRedirects) as e:
@@ -83,13 +82,13 @@ def minify_js_file(name, dry_run=False):
                 if verbosity <= 0:
                     print('\n', flush=True)
 
-def parse_args():
-    def directory(s):
+def parse_args() -> argparse.Namespace:
+    def directory(s: str) -> str:
         if not os.path.isdir(s):
             raise argparse.ArgumentTypeError('Directory not passed')
         return s
 
-    def comma_separated_string(s):
+    def comma_separated_string(s: str) -> tuple[str, ...]:
         parts = s.split(',')
 
         # Make resiliant in case of stray commas at the end of config items
@@ -97,7 +96,7 @@ def parse_args():
             del parts[-1]
         return tuple(parts)
 
-    def comma_separated_extensions(s):
+    def comma_separated_extensions(s: str) -> tuple[str, ...]:
         return tuple('.{}'.format(i) for i in comma_separated_string(s))
 
     parser = argparse.ArgumentParser(description=__doc__, add_help=False,
@@ -150,7 +149,7 @@ def parse_args():
 
     return parser.parse_args()
 
-def main():
+def main() -> None:
     args = parse_args()
     for root, _, files in os.walk(args.root):
         if any(dirname in root for dirname in args.omit_dirname_includes):
