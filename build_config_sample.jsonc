@@ -29,5 +29,6 @@
     "build_post_command": [],
     
     //Additional directories to clean while cleaning.
-    "clean_directories": []
+    "clean_directories": [],
+    "clean_files": []
 }
